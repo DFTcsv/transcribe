@@ -117,14 +117,22 @@ label.field{display:flex; flex-direction:column; gap:4px}
 .empty{color:var(--muted); font-size:14px; padding:18px; text-align:center}
 
 /* 現場錄音 */
-.live-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.one-line{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+.live-head{display:flex; align-items:center; gap:10px; min-height:24px}
+#live-state{flex:1}
+.dl-box{margin-top:12px; font-size:13px; color:var(--muted); min-height:34px}
+.dl-box .bar{height:5px; margin-top:6px}
+.dl-row{display:flex; justify-content:space-between; gap:10px}
+.dl-row span:last-child{font-variant-numeric:tabular-nums; flex:none}
+.pre-dl{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
+.pre-dl .bar{flex:1; min-width:120px; height:5px}
 .rec-dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--danger); animation:blink 1.2s infinite}
 .rec-dot.paused{background:var(--muted); animation:none}
 @keyframes blink{50%{opacity:.25}}
 .rec-time{font-size:40px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:.02em; margin:4px 0 0}
 .meter{height:6px; background:var(--line); border-radius:99px; overflow:hidden; margin:10px 0 0}
 .meter > i{display:block; height:100%; width:0; background:var(--ok); transition:width .08s}
-.live-stat{font-size:13.5px; color:var(--muted); margin:10px 0 0}
+.live-stat{font-size:13.5px; color:var(--muted); margin:10px 0 0; min-height:1.6em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .live-list{margin-top:14px; display:flex; flex-direction:column; gap:2px}
 .live-line{display:grid; grid-template-columns:64px 1fr; gap:8px; padding:6px 4px; font-size:15.5px; line-height:1.7; border-radius:8px}
 .live-line .t{font:12px var(--mono); color:var(--accent); padding-top:4px}
@@ -137,7 +145,9 @@ label.field{display:flex; flex-direction:column; gap:4px}
 .filename{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0 0 16px}
 .bar{height:8px; background:var(--line); border-radius:99px; overflow:hidden}
 .bar > i{display:block; height:100%; width:0; background:var(--accent); border-radius:99px; transition:width .25s ease}
-.row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-top:12px; font-size:14px}
+.row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-top:12px; font-size:14px; min-height:1.6em}
+.row .status{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row .pct{flex:none}
 .pct{font-variant-numeric:tabular-nums; font-weight:600}
 .status{color:var(--muted)}
 .steps{list-style:none; padding:0; margin:18px 0 0; display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--muted)}
@@ -350,6 +360,12 @@ footer{margin-top:40px; color:var(--muted); font-size:12.5px; text-align:center}
       <div class="tier-info" id="tier-info"></div>
       <label class="check"><input id="trad" type="checkbox" checked> 中文輸出轉為繁體（台灣用字）</label>
       <label class="check"><input id="autopunct" type="checkbox"> 辨識完自動加標點（較花時間，長內容建議之後在電腦上處理）</label>
+      <label class="check"><input id="safe-mode" type="checkbox"> 安全模式（用最小的模型、不用顯示卡加速；手機常當掉或重新整理時開啟）</label>
+      <div class="pre-dl">
+        <button class="btn sm" id="pre-dl-btn" type="button">預先下載辨識模型</button>
+        <div class="bar" id="pre-dl-bar" hidden><i></i></div>
+        <span class="small one-line" id="pre-dl-text">建議上課前先在 Wi-Fi 下完成，錄音時字幕才能馬上出現</span>
+      </div>
       <p class="meta-line" id="storage-line"></p>
       <details style="margin-top:8px">
         <summary>實驗功能</summary>
@@ -367,10 +383,14 @@ footer{margin-top:40px; color:var(--muted); font-size:12.5px; text-align:center}
   <!-- ============ 現場錄音 ============ -->
   <section id="view-live" hidden>
     <div class="card">
-      <div class="live-head"><span class="rec-dot" id="live-dot"></span><span id="live-state">準備中…</span></div>
+      <div class="live-head"><span class="rec-dot" id="live-dot"></span><span id="live-state" class="one-line">準備中…</span></div>
       <div class="rec-time" id="live-time">00:00:00</div>
       <div class="meter"><i id="live-level"></i></div>
       <p class="live-stat" id="live-stat"></p>
+      <div class="dl-box" id="live-dl" hidden>
+        <div class="dl-row"><span class="one-line" id="live-dl-text">下載字幕模型（只有第一次）</span><span id="live-dl-pct">0%</span></div>
+        <div class="bar"><i id="live-dl-bar"></i></div>
+      </div>
       <div class="notice" id="live-warn" hidden style="margin:12px 0 0">
         <div id="live-warn-text">錄音中斷了（切換 App 或鎖定螢幕時，瀏覽器會停止收音）。已錄到的內容都保存著。</div>
         <div class="actions" style="margin-top:10px"><button class="btn primary sm" id="live-remic" type="button">繼續錄音</button></div>
@@ -571,7 +591,7 @@ footer{margin-top:40px; color:var(--muted); font-size:12.5px; text-align:center}
 /* =====================================================================
    設定
    ===================================================================== */
-const APP_VERSION = '4.1.0';
+const APP_VERSION = '4.1.1';
 const TF_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js';
 const OPENCC_URL = 'https://cdn.jsdelivr.net/npm/opencc-js@1/dist/umd/full.js';
 const LAME_URL = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
@@ -802,10 +822,17 @@ async function resolveTier(){
   return mobile ? 'low' : (gpu ? 'high' : 'mid');
 }
 // 依效能等級選擇辨識模型
+const isIOSDevice = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const safeMode = () => store.get('safeMode', '0') === '1';
 async function asrSpec(){
   const tier = await resolveTier();
-  const { gpu } = await detectDevice();
+  const { gpu: g } = await detectDevice();
+  // iPhone 的瀏覽器記憶體限制很嚴格，低等級一律用最省記憶體的方式；安全模式也不用顯示卡
+  const gpu = (safeMode() || (tier === 'low' && isIOSDevice())) ? null : g;
   const f16 = !!(gpu && gpu.f16);
+  if (safeMode()){
+    if (tier === 'low') return { tier, label: 'base', name: 'asr', task: 'automatic-speech-recognition', id: M_BASE, device: 'wasm', dtype: 'q8' };
+  }
   const fbSmall = { id: M_SMALL, dtype: 'q8' };
   if (tier === 'high' && gpu){
     return { tier, label: 'large-v3-turbo', name: 'asr', task: 'automatic-speech-recognition', id: M_TURBO, device: 'webgpu',
@@ -826,27 +853,36 @@ async function updateTierInfo(){
   const tier = await resolveTier();
   const auto = $('tier').value === 'auto';
   const desc = {
-    low: '辨識用 <b>small</b>（手機支援顯示卡加速時）或 <b>base</b> 模型，約 80–400 MB。速度優先，適合現場錄音。',
+    low: safeMode() || isIOSDevice() ? '辨識用 <b>base</b> 模型，約 80 MB，最省記憶體。速度優先，適合現場錄音。' : '辨識用 <b>small</b>（手機支援顯示卡加速時）或 <b>base</b> 模型，約 80–400 MB。速度優先，適合現場錄音。',
     mid: '辨識用 <b>small</b> 模型，約 250 MB，以 CPU 運算。準確度中等，3 小時的內容可能需要數小時。',
     high: '辨識用 <b>large-v3-turbo</b> 模型，約 0.8–1.6 GB（第一次下載）。準確度最高，速度也最快。',
   }[tier];
   const env = mobile ? '手機' : '電腦';
   $('tier-info').innerHTML = `${auto ? '自動偵測結果：' : '目前：'}<b>${TIER_LABEL[tier]}</b>（此裝置：${env}，${gpu ? '支援顯示卡加速' : '不支援顯示卡加速'}）<br>${desc}` +
-    (tier === 'high' && !gpu ? '<br><span style="color:var(--warn)">此裝置沒有顯示卡加速，會自動改用「中」等級的模型。</span>' : '');
+    (tier === 'high' && !gpu ? '<br><span style="color:var(--warn)">此裝置沒有顯示卡加速，會自動改用「中」等級的模型。</span>' : '') +
+    (safeMode() ? '<br><span style="color:var(--warn)">安全模式已開啟：不使用顯示卡加速。</span>' : '');
 }
 
 // 載入模型：Worker 失敗 → 改主畫面；顯示卡失敗 → 改 CPU
 async function loadModel(spec, onProgress){
-  const files = {};
+  const files = {}; let best = 0, lastAt = 0;
   const onDl = (m) => {
     const p = m.p || {};
     if (p.status === 'progress' && p.total){
       files[p.file] = { loaded: p.loaded, total: p.total };
       let L = 0, T = 0; for (const f in files){ L += files[f].loaded; T += files[f].total; }
-      onProgress(L / T, '下載模型 ' + Math.round(L / 1048576) + ' / ' + Math.round(T / 1048576) + ' MB');
-    } else if (p.status === 'ready') onProgress(1, '初始化模型中…');
+      best = Math.max(best, Math.min(0.99, L / T));
+      const now = performance.now();
+      if (now - lastAt < 200) return;           // 更新太頻繁會讓畫面閃動
+      lastAt = now;
+      onProgress(best, '下載模型中（已下載 ' + Math.round(L / 1048576) + ' MB）');
+    } else if (p.status === 'ready'){ best = 1; onProgress(1, '初始化模型中…'); }
   };
-  const attempt = (s) => engine.call('load', { name: s.name, task: s.task, id: s.id, device: s.device, dtype: s.dtype }, onDl).then(() => s);
+  const attempt = (s) => {
+    store.set('loadingModel', JSON.stringify({ id: s.id, t: Date.now() }));   // 若載入中頁面被重新整理，下次開啟就知道
+    return engine.call('load', { name: s.name, task: s.task, id: s.id, device: s.device, dtype: s.dtype }, onDl)
+      .then(() => { store.set('loadingModel', ''); return s; }, (err) => { store.set('loadingModel', ''); throw err; });
+  };
   try { return await attempt(spec); }
   catch (err){
     if (isCancelled()) throw err;
@@ -992,6 +1028,36 @@ async function updateStorageLine(){
 function fmtBytes(n){ n = n || 0; return n > 1e9 ? (n / 1e9).toFixed(1) + ' GB' : Math.round(n / 1e6) + ' MB'; }
 $('adv').addEventListener('toggle', () => { if ($('adv').open) updateStorageLine(); });
 if (isStandalone()) keepStorage();
+
+// 偵測「載入模型時頁面被重新整理」（多半是手機記憶體不足），自動切換成安全模式
+(() => {
+  let info = null; try { info = JSON.parse(store.get('loadingModel', '') || 'null'); } catch {}
+  store.set('loadingModel', '');
+  if (info && Date.now() - info.t < 15 * 60 * 1000 && !safeMode()){
+    store.set('safeMode', '1');
+    const n = $('home-notice');
+    n.textContent = '上次載入辨識模型時，網頁被瀏覽器重新整理了（通常是手機記憶體不足）。已自動改用「安全模式」：使用較小的模型、不使用顯示卡加速。可在「設定」中關閉。';
+    n.hidden = false;
+  }
+  $('safe-mode').checked = safeMode();
+  $('safe-mode').addEventListener('change', () => { store.set('safeMode', $('safe-mode').checked ? '1' : '0'); updateTierInfo(); });
+})();
+
+// 預先下載辨識模型（上課前在 Wi-Fi 下完成）
+$('pre-dl-btn').addEventListener('click', async () => {
+  if (busy || live) return alert('有工作正在進行中，請稍候。');
+  busy = true; cancelled = false; taskCancelled = false;
+  const btn = $('pre-dl-btn'), bar = $('pre-dl-bar'), txt = $('pre-dl-text');
+  btn.disabled = true; bar.hidden = false; bar.firstElementChild.style.width = '0%';
+  keepStorage();
+  try {
+    const spec = await loadAsrModels(currentOpts(), (f, t) => { bar.firstElementChild.style.width = Math.round(f * 100) + '%'; txt.textContent = t; });
+    bar.firstElementChild.style.width = '100%';
+    txt.textContent = `已下載完成（${spec.label} 模型），之後沒有網路也能使用`;
+  } catch (err){ txt.textContent = '下載失敗：' + (err.message || err); }
+  busy = false; btn.disabled = false; bar.hidden = true;
+  updateStorageLine();
+});
 for (const [id, prop] of [['tier','value'],['lang','value'],['diar','value'],['trad','checked'],['vad','checked'],['conf','checked'],['autopunct','checked']]){
   const v = store.get(id, null);
   if (v != null) $(id)[prop] = prop === 'checked' ? v === '1' : v;
@@ -1880,15 +1946,18 @@ class LiveSession {
       box.appendChild(el);
     }
     while (box.children.length > 300) box.firstChild.remove();
-    if (atBottom) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    if (atBottom && document.body.scrollHeight > window.innerHeight + 20) box.lastElementChild?.scrollIntoView({ block: 'end' });
   }
   tick(){
     if (live !== this) return;
-    $('live-time').textContent = fmtHMS(this.pcm.total);
     $('live-level').style.width = Math.min(100, (this.level || 0) * 400) + '%';
     const pend = this.queue.reduce((s, c) => s + c.t1 - c.t0, 0);
-    $('live-stat').textContent = `已轉寫到 ${fmtHMS(this.p.job.asrUntil || 0)}` + (pend > 1 ? ` · 待轉寫 ${fmtDur(pend)}` : '') +
-      (this.error ? ' · 辨識發生錯誤，錄音仍持續保存' : '') + ` · 模型 ${this.p.model || ''}`;
+    const stat = !this.ready && !this.error ? '錄音進行中，字幕稍後自動補上' :
+      `已轉寫到 ${fmtHMS(this.p.job.asrUntil || 0)}` + (pend > 1 ? ` · 待轉寫 ${fmtDur(pend)}` : '') +
+      (this.error ? ' · 辨識發生錯誤，錄音仍持續保存' : '') + (this.p.model ? ` · ${this.p.model}` : '');
+    if ($('live-stat').textContent !== stat) $('live-stat').textContent = stat;
+    const tm = fmtHMS(this.pcm.total);
+    if ($('live-time').textContent !== tm) $('live-time').textContent = tm;
     requestAnimationFrame(() => setTimeout(() => this.tick(), 250));
   }
   setState(){
@@ -1964,7 +2033,8 @@ async function startLive(resumeProject, finishOnly){
       mediaType: 'audio/wav', hasMedia: false, job: { opts: currentOpts(), parts: 0, asrUntil: 0 } };
   } else blocks = await loadPcmBlocks(project.id);
   $('live-list').innerHTML = ''; $('live-warn').hidden = true;
-  $('live-state').textContent = '載入辨識模型…'; $('live-stat').textContent = '';
+  $('live-state').textContent = '準備麥克風…'; $('live-stat').textContent = '';
+  $('live-dl').hidden = true; $('live-dl-bar').style.width = '0%'; $('live-dl-pct').textContent = '0%';
   show('live');
   const s = new LiveSession(project, blocks);
   live = s;
@@ -1981,10 +2051,17 @@ async function startLive(resumeProject, finishOnly){
   }
   // 模型在背景載入；載入完成前的聲音會排隊等候
   try {
-    const spec = await loadAsrModels(project.job.opts, (f, t) => { if (live === s) $('live-state').textContent = t + '（錄音已開始）'; });
+    let shown = false;
+    const spec = await loadAsrModels(project.job.opts, (f, t) => {
+      if (live !== s) return;
+      if (!shown && f < 0.98){ shown = true; $('live-dl').hidden = false; }   // 已經下載過就不會顯示
+      $('live-dl-bar').style.width = Math.round(f * 100) + '%';
+      $('live-dl-pct').textContent = Math.round(f * 100) + '%';
+    });
+    $('live-dl').hidden = true;
     project.model = spec.label; project.tier = spec.tier;
     s.ready = true;
-  } catch (err){ s.error = err; console.error(err); }
+  } catch (err){ s.error = err; console.error(err); $('live-dl').hidden = true; }
   if (live === s){ s.setState(); s.work(); if (finishOnly) s.stop(); }
 }
 // 把中斷前還沒辨識的錄音重新排進佇列

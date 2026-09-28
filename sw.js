@@ -1,5 +1,5 @@
 /* 離線快取：讓網頁安裝成 App 後，沒有網路也能開啟 */
-const VERSION = '4.1.0';
+const VERSION = '4.1.1';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-v1';           // 程式庫（transformers.js、onnxruntime 等），版本固定，長期保存
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-32.png', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
