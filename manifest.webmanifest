@@ -1,0 +1,22 @@
+{
+  "name": "MP4 轉 SRT 逐字稿",
+  "short_name": "逐字稿",
+  "description": "影片轉逐字稿、上課邊錄邊轉。免費、免註冊，全部在你的裝置上完成。",
+  "lang": "zh-Hant-TW",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fafafa",
+  "theme_color": "#2f5bff",
+  "categories": ["productivity", "education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "現場錄音", "short_name": "錄音", "url": "./?action=live", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

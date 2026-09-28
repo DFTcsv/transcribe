@@ -1,0 +1,3239 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="逐字稿">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="影片轉逐字稿、上課邊錄邊轉。免費、免註冊，全部在你的裝置上完成。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>MP4 轉 SRT 逐字稿</title>
+<style>
+:root{
+  --bg:#fafafa; --surface:#ffffff; --surface-2:#f3f3f5; --text:#111113; --muted:#6b6b76; --line:#e4e4e8; --line-strong:#cfcfd6;
+  --accent:#2f5bff; --accent-soft:#eef2ff; --danger:#d93636; --ok:#16a34a; --warn-bg:#fff7e6; --warn:#8a5a00; --radius:14px;
+  --hl:#fff1a8; --hl-cur:#ffc94d; --active:#f0f4ff; --kara:#d6e0ff; --low:#e8590c; --star:#f59f00;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#111113; --surface:#1a1a1d; --surface-2:#222226; --text:#f2f2f4; --muted:#9a9aa6; --line:#2c2c31; --line-strong:#3d3d44;
+         --accent:#6d8bff; --accent-soft:#1c2340; --danger:#ff6b6b; --ok:#4ade80; --warn-bg:#2a2210; --warn:#f0c46a;
+         --hl:#5c4d00; --hl-cur:#8a6500; --active:#1b2238; --kara:#2c3a6b; --low:#ff922b; --star:#ffc53d; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--text); min-height:100vh;
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+main{max-width:720px; margin:0 auto; padding:44px 16px 48px}
+body.wide main{max-width:1280px; padding-top:20px}
+[hidden]{display:none !important}
+a{color:var(--accent)}
+h1{font-size:28px; font-weight:650; letter-spacing:-.02em; margin:0 0 4px}
+h2{font-size:15px; font-weight:600; margin:0 0 10px}
+.sub{color:var(--muted); margin:0; font-size:15px}
+.small{font-size:12.5px; color:var(--muted)}
+.notice{background:var(--warn-bg); color:var(--warn); border-radius:12px; padding:12px 14px; font-size:14px; margin-bottom:16px}
+.notice.ok{background:color-mix(in srgb, var(--ok) 12%, transparent); color:var(--text)}
+header{margin-bottom:22px}
+
+.btn{
+  font:inherit; font-size:15px; font-weight:550; border-radius:10px; padding:9px 16px; cursor:pointer;
+  border:1px solid var(--line); background:var(--surface); color:var(--text); white-space:nowrap;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{background:var(--danger); border-color:var(--danger); color:#fff}
+.btn.ghost{border-color:transparent; background:transparent; color:var(--muted)}
+.btn.ghost:hover{color:var(--text); background:var(--surface-2)}
+.btn.sm{font-size:13.5px; padding:6px 10px; border-radius:8px}
+.btn.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.btn svg{width:18px; height:18px}
+.icon-btn{border:0; background:transparent; color:var(--muted); cursor:pointer; padding:6px; border-radius:8px; display:inline-flex}
+.icon-btn:hover{background:var(--surface-2); color:var(--text)}
+.icon-btn svg{width:18px; height:18px}
+.icon-btn.on{color:var(--star)}
+select,input[type=text],input[type=search],input[type=number],textarea{
+  font:inherit; font-size:15px; color:var(--text); background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; padding:8px 10px;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline-offset:-1px}
+.check{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); cursor:pointer}
+.check input{accent-color:var(--accent); width:16px; height:16px}
+.actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:20px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px}
+
+/* 首頁：兩種模式 */
+.modes{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.drop{
+  width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  min-height:200px; padding:28px 18px; border:1.5px dashed var(--line-strong); border-radius:var(--radius);
+  background:var(--surface); color:var(--text); cursor:pointer; font:inherit; text-align:center;
+  transition:border-color .15s, background .15s, transform .15s;
+}
+.drop:hover,.drop:focus-visible,.drop.over{border-color:var(--accent); background:var(--accent-soft); outline:none}
+.drop:active{transform:scale(.995)}
+.drop svg{width:34px; height:34px; color:var(--accent)}
+.drop.live svg{color:var(--danger)}
+.drop.live:hover,.drop.live:focus-visible{border-color:var(--danger); background:color-mix(in srgb, var(--danger) 8%, transparent)}
+.drop strong{font-size:17px; font-weight:600}
+.drop span{color:var(--muted); font-size:13.5px}
+.home-row{display:flex; gap:10px; margin-top:12px; align-items:center; flex-wrap:wrap}
+details.adv{margin-top:14px; color:var(--muted); font-size:14px}
+details.adv summary{cursor:pointer; user-select:none; padding:4px 0}
+.settings{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:10px 0}
+label.field{display:flex; flex-direction:column; gap:4px}
+.adv .check{margin-top:6px}
+.tier-info{font-size:13px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:4px 0 8px; color:var(--text)}
+.tier-info b{font-weight:600}
+.history{margin-top:34px}
+.install{display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:16px}
+.install img{width:40px; height:40px; border-radius:10px; flex:none}
+.install div{flex:1; min-width:0; font-size:14px}
+.install b{display:block; font-size:15px}
+.ios-steps{margin:8px 0 0; padding-left:22px; font-size:15px; line-height:1.9}
+.ios-steps svg{width:18px; height:18px; vertical-align:-3px; color:var(--accent)}
+.meta-line{font-size:12.5px; color:var(--muted); margin-top:10px}
+@media (display-mode: standalone){ .hide-standalone{display:none !important} }
+.history-list{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); overflow:hidden}
+.h-item{display:flex; align-items:center; gap:12px; padding:12px 14px; border-top:1px solid var(--line); cursor:pointer}
+.h-item:first-child{border-top:0}
+.h-item:hover{background:var(--surface-2)}
+.h-main{flex:1; min-width:0}
+.h-name{font-weight:550; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.h-meta{font-size:13px; color:var(--muted)}
+.h-meta .warn{color:var(--warn)}
+.empty{color:var(--muted); font-size:14px; padding:18px; text-align:center}
+
+/* 現場錄音 */
+.live-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.rec-dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--danger); animation:blink 1.2s infinite}
+.rec-dot.paused{background:var(--muted); animation:none}
+@keyframes blink{50%{opacity:.25}}
+.rec-time{font-size:40px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:.02em; margin:4px 0 0}
+.meter{height:6px; background:var(--line); border-radius:99px; overflow:hidden; margin:10px 0 0}
+.meter > i{display:block; height:100%; width:0; background:var(--ok); transition:width .08s}
+.live-stat{font-size:13.5px; color:var(--muted); margin:10px 0 0}
+.live-list{margin-top:14px; display:flex; flex-direction:column; gap:2px}
+.live-line{display:grid; grid-template-columns:64px 1fr; gap:8px; padding:6px 4px; font-size:15.5px; line-height:1.7; border-radius:8px}
+.live-line .t{font:12px var(--mono); color:var(--accent); padding-top:4px}
+.live-line.star{background:color-mix(in srgb, var(--star) 12%, transparent)}
+.live-actions{display:grid; grid-template-columns:1fr 1fr 1.3fr; gap:8px; margin-top:16px}
+.live-actions .btn{padding:12px 8px}
+
+/* 進度 */
+.queue-line{font-size:13px; color:var(--muted); margin:-8px 0 12px}
+.filename{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0 0 16px}
+.bar{height:8px; background:var(--line); border-radius:99px; overflow:hidden}
+.bar > i{display:block; height:100%; width:0; background:var(--accent); border-radius:99px; transition:width .25s ease}
+.row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-top:12px; font-size:14px}
+.pct{font-variant-numeric:tabular-nums; font-weight:600}
+.status{color:var(--muted)}
+.steps{list-style:none; padding:0; margin:18px 0 0; display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--muted)}
+.steps li{display:flex; align-items:center; gap:8px}
+.steps li::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--line-strong)}
+.steps li.doing{color:var(--text)}
+.steps li.doing::before{background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft)}
+.steps li.done::before{background:var(--ok)}
+.steps li.skip{opacity:.45}
+.hint{color:var(--muted); font-size:13px; margin:16px 0 0}
+.error{color:var(--danger); margin-top:14px; font-size:14px; white-space:pre-wrap}
+
+/* 編輯器 */
+.ed-top{display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap}
+.ed-title{flex:1; min-width:160px; font:inherit; font-size:19px; font-weight:650; border:0; background:transparent; color:var(--text); padding:6px 8px; border-radius:8px}
+.ed-title:hover{background:var(--surface)}
+.save-state{font-size:12.5px; color:var(--muted); white-space:nowrap}
+.menu{position:relative}
+.menu-list{position:absolute; right:0; top:calc(100% + 6px); z-index:20; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:6px; min-width:210px; box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.menu-list button{display:block; width:100%; text-align:left; border:0; background:transparent; font:inherit; font-size:14px; color:var(--text); padding:8px 10px; border-radius:8px; cursor:pointer}
+.menu-list button:hover{background:var(--surface-2)}
+.menu-list small{display:block; color:var(--muted); font-size:12px}
+.pop{position:fixed; z-index:30; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:6px; min-width:150px; box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.pop button{display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:0; background:transparent; font:inherit; font-size:14px; color:var(--text); padding:7px 10px; border-radius:8px; cursor:pointer}
+.pop button:hover{background:var(--surface-2)}
+.task{display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:12px; font-size:14px}
+.task .bar{flex:1; min-width:80px}
+.task-name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:50%}
+.ed-grid{display:grid; grid-template-columns:minmax(0,420px) minmax(0,1fr); gap:24px; align-items:start}
+.ed-side{position:sticky; top:16px; display:flex; flex-direction:column; gap:12px; max-height:calc(100vh - 32px)}
+.player{background:var(--bg)}
+video{width:100%; max-height:40vh; background:#000; border-radius:12px; display:block}
+video.audio-only{height:54px; background:var(--surface-2)}
+video::cue{font-family:inherit; font-size:1.05em; background:rgba(0,0,0,.72)}
+.media-missing{border:1.5px dashed var(--line-strong); border-radius:12px; padding:18px; text-align:center; font-size:14px; color:var(--muted); cursor:pointer; background:var(--surface)}
+.tabs{display:flex; gap:4px; background:var(--surface-2); padding:4px; border-radius:11px}
+.tabs button{flex:1; border:0; background:transparent; font:inherit; font-size:14px; padding:7px 6px; border-radius:8px; color:var(--muted); cursor:pointer; white-space:nowrap}
+.tabs button.on{background:var(--surface); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tab-t{display:none}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; overflow:auto; min-height:0}
+.off{display:none !important}
+.sum-overview{font-size:15px; line-height:1.75; margin:0 0 12px}
+.kw{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px}
+.kw span{font-size:12.5px; background:var(--accent-soft); color:var(--accent); padding:2px 9px; border-radius:99px}
+.sec{margin:14px 0}
+.sec h3{font-size:14.5px; margin:0 0 6px}
+.sec ul{margin:0; padding-left:20px; font-size:14px}
+.sec li{margin:3px 0}
+.chap{padding:10px 0; border-top:1px solid var(--line)}
+.chap-h{display:flex; gap:8px; align-items:baseline}
+.chap-h b{font-weight:600; font-size:15px}
+.chap ul{margin:6px 0 0; padding-left:20px; font-size:14px; color:var(--muted)}
+.chap li{margin:2px 0}
+.gen-box{font-size:13.5px; color:var(--muted); white-space:pre-wrap; background:var(--surface-2); border-radius:10px; padding:10px 12px; margin-top:12px; max-height:160px; overflow:auto}
+.spk-row{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line)}
+.spk-row:first-child{border-top:0}
+.spk-row input{flex:1; min-width:0}
+.dot{width:10px; height:10px; border-radius:50%; flex:none; background:var(--c)}
+.qa-list{display:flex; flex-direction:column; gap:10px; margin-bottom:12px}
+.qa-q{align-self:flex-end; background:var(--accent); color:#fff; padding:8px 12px; border-radius:14px 14px 4px 14px; max-width:85%; font-size:14.5px; white-space:pre-wrap}
+.qa-a{align-self:flex-start; background:var(--surface-2); padding:10px 12px; border-radius:14px 14px 14px 4px; max-width:95%; font-size:14.5px; line-height:1.7; white-space:pre-wrap}
+.qa-a .ts{margin:0 2px}
+.qa-form{display:flex; gap:8px}
+.qa-form input{flex:1; min-width:0}
+.qa-sugg{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px}
+.marks-list{display:flex; flex-direction:column; gap:4px; margin-top:6px}
+.marks-list button{text-align:left; border:0; background:var(--surface-2); border-radius:8px; padding:6px 10px; font:inherit; font-size:13.5px; color:var(--text); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+.ed-main{min-width:0}
+.toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; position:sticky; top:0; z-index:4; background:var(--bg); padding:4px 0 10px}
+.search{display:flex; align-items:center; gap:4px; flex:1; min-width:220px}
+.search input{flex:1; min-width:0}
+.count{font-size:13px; color:var(--muted); min-width:44px; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap}
+.replace-row{display:flex; gap:8px; width:100%; flex-wrap:wrap; align-items:center}
+.replace-row input[type=text]{flex:1; min-width:140px}
+.proof-row{display:flex; gap:8px; width:100%; flex-wrap:wrap; align-items:center; font-size:13px; color:var(--muted)}
+.kbd-hint{font-size:12px; color:var(--muted); margin:0 0 8px}
+.segs{display:flex; flex-direction:column}
+.seg{display:grid; grid-template-columns:auto 1fr auto; gap:2px 12px; padding:10px 10px; border-radius:10px; align-items:start;
+     content-visibility:auto; contain-intrinsic-size:auto 70px}
+.seg:hover{background:var(--surface)}
+.seg.active{background:var(--active)}
+.seg.match{box-shadow:inset 3px 0 0 var(--hl-cur)}
+.seg.star{box-shadow:inset 3px 0 0 var(--star)}
+.seg-meta{display:flex; flex-direction:column; gap:4px; align-items:flex-start; padding-top:2px; width:92px; grid-row:1 / span 2}
+.ts{border:0; background:transparent; color:var(--accent); font:12.5px var(--mono); padding:0; cursor:pointer}
+.ts:hover{text-decoration:underline}
+.seg.ok .ts::after{content:" ✓"; color:var(--ok)}
+.seg.star .ts::before{content:"★ "; color:var(--star)}
+.spk{font:inherit; font-size:12.5px; padding:1px 8px; border-radius:6px; border:1px solid transparent; max-width:92px; cursor:pointer;
+     background:color-mix(in srgb, var(--c) 16%, transparent); color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.spk:hover{border-color:var(--line-strong)}
+.txt{font-size:16px; line-height:1.75; outline:none; border-radius:6px; padding:0 4px; min-height:1.75em; word-break:break-word; white-space:pre-wrap; grid-column:2}
+.txt:focus,.tr:focus{background:var(--surface); box-shadow:0 0 0 1px var(--line-strong)}
+.tr:empty::before{content:attr(data-placeholder); opacity:.5}
+.tr{font-size:14px; line-height:1.6; color:var(--muted); outline:none; border-radius:6px; padding:0 4px; grid-column:2; white-space:pre-wrap}
+.seg-acts{display:flex; gap:0; opacity:0; transition:opacity .12s; grid-column:3; grid-row:1}
+.seg:hover .seg-acts,.seg:focus-within .seg-acts{opacity:1}
+::highlight(search){background-color:var(--hl)}
+::highlight(search-cur){background-color:var(--hl-cur)}
+::highlight(karaoke){background-color:var(--kara)}
+::highlight(lowconf){color:var(--low); text-decoration:underline wavy var(--low)}
+
+dialog{border:1px solid var(--line); border-radius:16px; padding:22px; background:var(--surface); color:var(--text); width:min(460px, calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.fmt{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 14px}
+.fmt label{border:1px solid var(--line); border-radius:10px; padding:10px; cursor:pointer; font-size:14px}
+.fmt label:has(input:checked){border-color:var(--accent); background:var(--accent-soft)}
+.fmt input{margin-right:6px; accent-color:var(--accent)}
+.fmt small{display:block; color:var(--muted); font-size:12px}
+.opts{display:flex; flex-direction:column; gap:8px}
+#dict-text{width:100%; min-height:220px; font:14px/1.7 var(--mono)}
+.audio-export{border-top:1px solid var(--line); margin-top:16px; padding-top:14px}
+
+footer{margin-top:40px; color:var(--muted); font-size:12.5px; text-align:center}
+
+@media (max-width:960px){
+  body.wide main{padding-top:8px}
+  .ed-grid{grid-template-columns:1fr; gap:10px}
+  .ed-side{position:static; max-height:none}
+  .player{position:sticky; top:0; z-index:6; padding-top:4px}
+  .tab-t{display:block}
+  video{max-height:28vh}
+  .search{min-width:100%}
+}
+@media (min-width:961px){ #panel-transcript.off{display:block !important} }
+@media (max-width:560px){
+  main{padding-top:28px} h1{font-size:24px}
+  .modes{grid-template-columns:1fr}
+  .drop{min-height:140px; padding:20px 16px}
+  .seg{grid-template-columns:1fr auto; padding:10px 4px}
+  .seg-meta{flex-direction:row; width:auto; align-items:center; gap:8px; grid-row:1; grid-column:1}
+  .seg-acts{opacity:1; grid-row:1; grid-column:2}
+  .txt{grid-column:1 / -1; grid-row:2}
+  .tr{grid-column:1 / -1; grid-row:3}
+  .kbd-hint{display:none}
+  .ed-title{font-size:17px}
+  .task-name{max-width:40%}
+  .rec-time{font-size:34px}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="notice" id="frame-notice" hidden>
+    目前是在預覽視窗中開啟，功能可能會被擋住。請把檔案下載後，直接用 Chrome、Edge 或 Safari 開啟。
+  </div>
+  <div class="notice ok" id="home-notice" hidden></div>
+
+  <!-- ============ 首頁 ============ -->
+  <section id="view-home">
+    <header>
+      <h1>MP4 轉 SRT 逐字稿</h1>
+      <p class="sub">影片檔轉逐字稿，或上課時邊錄邊轉。支援長達 3 小時以上，免費、免註冊，全部在你的裝置上完成。</p>
+    </header>
+
+    <div class="install hide-standalone" id="install-card" hidden>
+      <img src="icons/icon-192.png" alt="">
+      <div><b>安裝成 App</b>加到主畫面，開啟更快，沒網路也能用。</div>
+      <button class="btn primary sm" id="install-btn" type="button">安裝</button>
+      <button class="icon-btn" id="install-close" type="button" aria-label="關閉"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+
+    <input id="file" type="file" accept="video/*,audio/*" multiple hidden>
+    <div class="modes">
+      <button id="drop" class="drop" type="button" aria-label="上傳影片或音檔">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        <strong>影片／音檔轉 SRT</strong>
+        <span>上傳 MP4、MP3 等檔案，可一次選多個</span>
+      </button>
+      <button id="live-btn" class="drop live" type="button" aria-label="現場錄音">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <strong>現場錄音轉 SRT</strong>
+        <span>上課、開會時邊錄邊轉，字幕即時出現</span>
+      </button>
+    </div>
+    <div class="home-row">
+      <button class="btn ghost sm" id="dict-btn-home" type="button">自訂詞庫</button>
+    </div>
+
+    <details class="adv" id="adv">
+      <summary>設定</summary>
+      <div class="settings">
+        <label class="field">效能等級
+          <select id="tier">
+            <option value="auto" selected>自動偵測</option>
+            <option value="low">低（手機）</option>
+            <option value="mid">中（沒有顯示卡的電腦）</option>
+            <option value="high">高（有顯示卡的電腦）</option>
+          </select>
+        </label>
+        <label class="field">語言
+          <select id="lang">
+            <option value="zh" selected>中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="">自動偵測</option>
+          </select>
+        </label>
+        <label class="field">說話者區分
+          <select id="diar">
+            <option value="auto" selected>自動判斷人數</option>
+            <option value="off">關閉</option>
+            <option value="1">1 人</option><option value="2">2 人</option><option value="3">3 人</option>
+            <option value="4">4 人</option><option value="5">5 人</option><option value="6">6 人</option>
+          </select>
+        </label>
+      </div>
+      <div class="tier-info" id="tier-info"></div>
+      <label class="check"><input id="trad" type="checkbox" checked> 中文輸出轉為繁體（台灣用字）</label>
+      <label class="check"><input id="autopunct" type="checkbox"> 辨識完自動加標點（較花時間，長內容建議之後在電腦上處理）</label>
+      <p class="meta-line" id="storage-line"></p>
+      <details style="margin-top:8px">
+        <summary>實驗功能</summary>
+        <label class="check"><input id="vad" type="checkbox"> AI 人聲偵測切段（可能漏掉小聲的句子）</label>
+        <label class="check"><input id="conf" type="checkbox"> 標出 AI 沒把握的字</label>
+      </details>
+    </details>
+
+    <div class="history">
+      <h2>歷史紀錄</h2>
+      <div class="history-list" id="history"><div class="empty">還沒有任何逐字稿</div></div>
+    </div>
+  </section>
+
+  <!-- ============ 現場錄音 ============ -->
+  <section id="view-live" hidden>
+    <div class="card">
+      <div class="live-head"><span class="rec-dot" id="live-dot"></span><span id="live-state">準備中…</span></div>
+      <div class="rec-time" id="live-time">00:00:00</div>
+      <div class="meter"><i id="live-level"></i></div>
+      <p class="live-stat" id="live-stat"></p>
+      <div class="notice" id="live-warn" hidden style="margin:12px 0 0">
+        <div id="live-warn-text">錄音中斷了（切換 App 或鎖定螢幕時，瀏覽器會停止收音）。已錄到的內容都保存著。</div>
+        <div class="actions" style="margin-top:10px"><button class="btn primary sm" id="live-remic" type="button">繼續錄音</button></div>
+      </div>
+      <div class="live-actions">
+        <button class="btn" id="live-mark" type="button">★ 標記重點</button>
+        <button class="btn" id="live-pause" type="button">暫停</button>
+        <button class="btn danger" id="live-stop" type="button">結束錄音</button>
+      </div>
+      <p class="hint" id="live-hint">請保持螢幕開啟、不要切換 App 或鎖定螢幕。建議接上充電器。錄音會自動保存，萬一中斷也不會遺失。</p>
+    </div>
+    <div class="live-list" id="live-list"></div>
+  </section>
+
+  <!-- ============ 處理中 ============ -->
+  <section id="view-progress" hidden>
+    <div class="card">
+      <p class="queue-line" id="p-queue" hidden></p>
+      <p class="filename" id="p-name"></p>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="p-bar"></i></div>
+      <div class="row"><span class="status" id="p-status">準備中…</span><span class="pct" id="p-pct">0%</span></div>
+      <ol class="steps" id="p-steps">
+        <li data-s="model">載入辨識模型</li>
+        <li data-s="asr">讀取與語音辨識</li>
+        <li data-s="spk">區分說話者</li>
+        <li data-s="punct">加上標點</li>
+        <li data-s="save">儲存</li>
+      </ol>
+      <p class="hint" id="p-hint">處理期間請保持此頁面開啟。進度會自動保存，萬一中斷，重新選擇同一個檔案就能接續。</p>
+      <div class="actions"><button class="btn" id="cancel" type="button">取消</button></div>
+      <div class="error" id="p-error" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ 編輯器 ============ -->
+  <section id="view-editor" hidden>
+    <div class="ed-top">
+      <button class="icon-btn" id="ed-back" title="回首頁" aria-label="回首頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <input class="ed-title" id="ed-title" aria-label="標題">
+      <span class="save-state" id="save-state"></span>
+      <div class="menu">
+        <button class="btn sm" id="tools-btn" type="button">AI 工具 ▾</button>
+        <div class="menu-list" id="tools-menu" hidden>
+          <button data-act="punct">自動加標點<small>補上逗號、句號、問號，不更動文字</small></button>
+          <button data-act="dict">套用自訂詞庫<small>把常錯的字一次改正</small></button>
+          <button data-act="dictedit">編輯自訂詞庫</button>
+          <button data-act="translate">翻譯字幕<small>產生雙語字幕</small></button>
+          <button data-act="cleartr" id="act-cleartr">移除翻譯</button>
+        </div>
+      </div>
+      <button class="btn primary sm" id="export-btn" type="button">匯出</button>
+    </div>
+    <div class="task" id="task" hidden>
+      <span class="task-name" id="task-name"></span>
+      <div class="bar"><i id="task-bar"></i></div>
+      <span class="pct" id="task-pct"></span>
+      <button class="btn ghost sm" id="task-cancel" type="button">取消</button>
+    </div>
+    <div class="ed-grid">
+      <aside class="ed-side">
+        <div class="player">
+          <video id="video" controls playsinline preload="metadata"></video>
+          <div class="media-missing" id="media-missing" hidden>影片沒有存在瀏覽器裡（檔案較大）。點這裡重新選擇原始檔案，即可同步播放。</div>
+          <input id="media-file" type="file" accept="video/*,audio/*" hidden>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab-t" data-tab="transcript">逐字稿</button>
+          <button data-tab="summary">重點整理</button>
+          <button data-tab="qa">問答</button>
+          <button data-tab="speakers">講者</button>
+        </div>
+        <div class="panel" id="panel-summary"></div>
+        <div class="panel off" id="panel-qa"></div>
+        <div class="panel off" id="panel-speakers"></div>
+      </aside>
+
+      <div class="ed-main" id="panel-transcript">
+        <div class="toolbar">
+          <div class="search">
+            <input type="search" id="q" placeholder="搜尋逐字稿" aria-label="搜尋">
+            <span class="count" id="q-count"></span>
+            <button class="icon-btn" id="q-prev" title="上一個"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m18 15-6-6-6 6"/></svg></button>
+            <button class="icon-btn" id="q-next" title="下一個"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <button class="btn ghost sm" id="rep-toggle" type="button">取代</button>
+          </div>
+          <select id="speed" title="播放速度" aria-label="播放速度">
+            <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+          </select>
+          <button class="btn sm" id="proof-btn" type="button" title="校稿模式">校稿模式</button>
+          <button class="btn sm" id="low-btn" type="button" title="跳到下一個 AI 沒把握的地方" hidden>待確認</button>
+          <label class="check"><input type="checkbox" id="follow" checked> 跟隨播放</label>
+          <div class="replace-row" id="rep-row" hidden>
+            <input type="text" id="rep" placeholder="取代為…" aria-label="取代為">
+            <button class="btn sm" id="rep-one" type="button">取代</button>
+            <button class="btn sm" id="rep-all" type="button">全部取代</button>
+            <label class="check"><input type="checkbox" id="rep-dict"> 同時加入詞庫</label>
+          </div>
+          <div class="proof-row" id="proof-row" hidden>
+            <span id="proof-count"></span>
+            <span>· 點任一句會只播放該句 · Tab 下一句（標記已校對）· Shift+Tab 上一句 · Alt+R 重播本句</span>
+          </div>
+        </div>
+        <p class="kbd-hint">點時間可跳到該處 · Esc 播放/暫停 · Alt + ←/→ 倒退/快轉 3 秒 · Enter 在游標處分段 · 句首按 Backspace 與上一句合併 · ★ 標記重點</p>
+        <div class="segs" id="segs"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pop" id="spk-pop" hidden></div>
+
+  <!-- 匯出 -->
+  <dialog id="export-dlg">
+    <h2>匯出</h2>
+    <div class="fmt">
+      <label><input type="radio" name="fmt" value="srt" checked>SRT 字幕<small>影片剪輯軟體、YouTube</small></label>
+      <label><input type="radio" name="fmt" value="txt">純文字<small>.txt 逐字稿</small></label>
+      <label><input type="radio" name="fmt" value="docx">Word<small>.docx 文件</small></label>
+      <label><input type="radio" name="fmt" value="vtt">WebVTT<small>網頁字幕格式</small></label>
+    </div>
+    <div class="opts">
+      <label class="field small" id="o-lang-l">字幕內容
+        <select id="o-lang"><option value="orig">原文</option><option value="both">雙語（原文＋翻譯）</option><option value="tr">只有翻譯</option></select>
+      </label>
+      <label class="check" id="o-time-l"><input type="checkbox" id="o-time" checked> 包含時間</label>
+      <label class="check" id="o-spk-l"><input type="checkbox" id="o-spk" checked> 包含講者名稱</label>
+      <label class="check" id="o-sum-l"><input type="checkbox" id="o-sum" checked> 包含重點整理</label>
+      <label class="check" id="o-tr-l"><input type="checkbox" id="o-tr" checked> 包含翻譯</label>
+      <label class="field small" id="o-max-l">字幕每行最多字數 <input type="number" id="o-max" min="8" max="40" value="16" style="width:90px"></label>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="export-go" type="button">下載</button>
+      <button class="btn" id="export-copy" type="button">複製文字</button>
+      <button class="btn ghost" id="export-close" type="button">關閉</button>
+    </div>
+    <div class="audio-export" id="audio-export" hidden>
+      <h2>下載錄音檔</h2>
+      <div class="home-row" style="margin-top:0">
+        <button class="btn sm" id="dl-mp3" type="button">MP3（較小）</button>
+        <button class="btn sm" id="dl-wav" type="button">WAV（原始音質）</button>
+        <span class="small" id="dl-status"></span>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 自訂詞庫 -->
+  <dialog id="dict-dlg">
+    <h2>自訂詞庫</h2>
+    <p class="small">每行一組「錯誤=正確」，例如「台雞電=台積電」。之後的辨識結果會自動改正；已轉好的逐字稿可用「AI 工具 → 套用自訂詞庫」。</p>
+    <textarea id="dict-text" spellcheck="false" placeholder="台雞電=台積電&#10;機器學系=機器學習"></textarea>
+    <div class="actions">
+      <button class="btn primary" id="dict-save" type="button">儲存</button>
+      <button class="btn ghost" id="dict-close" type="button">取消</button>
+    </div>
+  </dialog>
+
+  <!-- 翻譯 -->
+  <dialog id="tr-dlg">
+    <h2>翻譯字幕</h2>
+    <p class="small">用本機 AI 模型逐句翻譯，完成後可匯出雙語字幕。內容越長越花時間。</p>
+    <label class="field small">翻譯成
+      <select id="tr-lang">
+        <option value="English">English</option>
+        <option value="日本語">日本語</option>
+        <option value="한국어">한국어</option>
+        <option value="繁體中文">繁體中文</option>
+      </select>
+    </label>
+    <div class="actions">
+      <button class="btn primary" id="tr-go" type="button">開始翻譯</button>
+      <button class="btn ghost" id="tr-close" type="button">取消</button>
+    </div>
+  </dialog>
+
+  <!-- iPhone／iPad 安裝說明 -->
+  <dialog id="ios-dlg">
+    <h2>加到主畫面</h2>
+    <p class="small">請用 <b>Safari</b> 開啟這個網址，然後：</p>
+    <ol class="ios-steps">
+      <li>點下方（iPad 在右上）的 <b>分享</b> 按鈕 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></li>
+      <li>往下滑，點 <b>加入主畫面</b></li>
+      <li>點右上角的 <b>新增</b></li>
+    </ol>
+    <p class="small">之後從主畫面的「逐字稿」圖示開啟，就是全螢幕的 App 畫面。</p>
+    <div class="actions"><button class="btn primary" id="ios-close" type="button">知道了</button></div>
+  </dialog>
+
+  <!-- 未完成的工作 -->
+  <dialog id="resume-dlg">
+    <h2 id="resume-title">繼續未完成的工作</h2>
+    <p class="small" id="resume-text"></p>
+    <div class="actions" id="resume-actions"></div>
+  </dialog>
+
+  <footer id="footer">所有辨識都在你的裝置上完成，影片與錄音不會上傳到任何伺服器。<br><span id="app-version"></span></footer>
+</main>
+
+<script>
+/* =====================================================================
+   設定
+   ===================================================================== */
+const APP_VERSION = '4.1.0';
+const TF_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js';
+const OPENCC_URL = 'https://cdn.jsdelivr.net/npm/opencc-js@1/dist/umd/full.js';
+const LAME_URL = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+const SR = 16000;
+const MAX_CHUNK = 29.5, MIN_CHUNK = 18;
+const SPK_THRESHOLD = 0.8;
+const LOW_CONF = 0.45;
+const SPK_COLORS = ['#2f5bff','#e8590c','#0ca678','#ae3ec9','#f59f00','#1098ad','#e03131','#5c940d'];
+
+// 辨識模型（與第二版相同的標準 Whisper 模型與句子時間戳）
+const M_BASE  = 'onnx-community/whisper-base';
+const M_SMALL = 'onnx-community/whisper-small';
+const M_TURBO = 'onnx-community/whisper-large-v3-turbo';
+const VAD_MODEL = 'onnx-community/silero-vad';
+const SPK_MODEL = { id: 'Xenova/wavlm-base-plus-sv', dtype: 'q8' };
+const LLM_LITE = 'onnx-community/Qwen2.5-0.5B-Instruct';
+const LLM_PRO  = 'onnx-community/Qwen2.5-1.5B-Instruct';
+const TIER_LABEL = { low: '低（手機）', mid: '中（沒有顯示卡的電腦）', high: '高（有顯示卡的電腦）' };
+const TEMPLATES = {
+  general: { label: '通用摘要', map: '重點', reduce: null },
+  meeting: { label: '會議紀錄', map: '重點（若有決議或待辦事項，請寫出來）',
+    reduce: '## 會議摘要\n（2 到 3 句）\n## 決議事項\n- …\n## 待辦事項\n- 負責人：事項（期限，若有）\n## 討論重點\n- …' },
+  lecture: { label: '課堂筆記', map: '重點概念（若老師提到考試或作業，請寫出來）',
+    reduce: '## 課程主題\n（1 到 2 句）\n## 重點概念\n- 概念：說明\n## 例子與補充\n- …\n## 考試與作業提醒\n- …\n## 複習問題\n- …' },
+  interview: { label: '訪談整理', map: '重點觀點',
+    reduce: '## 受訪者背景\n（1 到 2 句）\n## 主要觀點\n- …\n## 關鍵引言\n- 「…」\n## 問答整理\n- 問：… 答：…' },
+};
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('mp4srt.' + k); return v == null ? d : v; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('mp4srt.' + k, v); } catch {} }
+};
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/* =====================================================================
+   AI 引擎（在背景 Worker 執行；失敗時改在主畫面執行）
+   ===================================================================== */
+function makeEngine(tf, emit){
+  tf.env.allowLocalModels = false;
+  const M = {};
+  const progress = (p) => emit({ type: 'dl', p: { status: p.status, file: p.file, loaded: p.loaded, total: p.total } });
+  const h2f = (h) => { const s = (h & 0x8000) ? -1 : 1, e = (h >> 10) & 0x1f, f = h & 0x3ff;
+    return e === 0 ? s * Math.pow(2, -14) * (f / 1024) : e === 31 ? (f ? NaN : s * Infinity) : s * Math.pow(2, e - 15) * (1 + f / 1024); };
+  const toF32 = (d) => d instanceof Float32Array ? d : (d instanceof Uint16Array ? Float32Array.from(d, h2f) : Float32Array.from(d));
+  async function drop({ name }){
+    const m = M[name]; if (!m) return true; delete M[name];
+    try { await m.obj.dispose(); } catch {}
+    return true;
+  }
+  return {
+    drop,
+    async load({ name, task, id, device, dtype }){
+      const key = id + '|' + device + '|' + JSON.stringify(dtype);
+      if (M[name] && M[name].key === key) return true;
+      await drop({ name });
+      try { await caches.open('transformers-cache'); tf.env.useBrowserCache = true; } catch { tf.env.useBrowserCache = false; }
+      let obj;
+      if (task === 'xvector'){
+        const processor = await tf.AutoProcessor.from_pretrained(id, { progress_callback: progress });
+        const model = await tf.AutoModel.from_pretrained(id, { device, dtype, progress_callback: progress });
+        obj = { processor, model, dispose: () => model.dispose() };
+      } else if (task === 'vad'){
+        const model = await tf.AutoModel.from_pretrained(id, { config: { model_type: 'custom' }, device, dtype, progress_callback: progress });
+        obj = { model, dispose: () => model.dispose() };
+      } else {
+        obj = await tf.pipeline(task, id, { device, dtype, progress_callback: progress });
+      }
+      M[name] = { key, obj };
+      return true;
+    },
+    has({ name }){ return !!M[name]; },
+    async vad({ audio, reset }){
+      const m = M.vad;
+      if (reset || !m.state){ m.state = new tf.Tensor('float32', new Float32Array(256), [2, 1, 128]); m.ctx = new Float32Array(64); }
+      const sr = new tf.Tensor('int64', BigInt64Array.from([16000n]), []);
+      const n = Math.floor(audio.length / 512), out = new Float32Array(n);
+      const buf = new Float32Array(576);
+      for (let i = 0; i < n; i++){
+        buf.set(m.ctx, 0); buf.set(audio.subarray(i * 512, i * 512 + 512), 64);
+        const r = await m.obj.model({ input: new tf.Tensor('float32', buf.slice(), [1, 576]), sr, state: m.state });
+        m.state = r.stateN; out[i] = r.output.data[0];
+        m.ctx = audio.slice(i * 512 + 448, i * 512 + 512);
+      }
+      return out;
+    },
+    // 語音辨識（標準模式：句子時間戳）。conf=true 時另外記錄每個字的信心值（實驗功能）
+    async asr({ audio, language, conf }){
+      const pipe = M.asr.obj;
+      const o = { task: 'transcribe', return_timestamps: true };
+      if (language) o.language = language;
+      const rec = { promptLen: -1, prev: null, probs: [], ids: null };
+      if (conf){
+        o.logits_processor = [(input_ids, logits) => {
+          try {
+            const ids = input_ids[0];
+            if (rec.promptLen < 0) rec.promptLen = ids.length;
+            if (rec.prev){ const t = Number(ids[ids.length - 1]); rec.probs.push(Math.exp(rec.prev.row[t] - rec.prev.max) / rec.prev.sum); }
+            const row = toF32(logits[0].data);
+            let max = -Infinity; for (let i = 0; i < row.length; i++) if (row[i] > max) max = row[i];
+            let sum = 0; for (let i = 0; i < row.length; i++) sum += Math.exp(row[i] - max);
+            rec.prev = { row: Float32Array.from(row), max, sum }; rec.ids = ids;
+          } catch {}
+          return logits;
+        }];
+      }
+      const out = await pipe(audio, o);
+      const chunks = out.chunks || [{ timestamp: [0, null], text: out.text || '' }];
+      let cf = null;
+      if (conf){
+        try {
+          if (rec.ids && rec.probs.length){
+            const toks = Array.from(rec.ids).slice(rec.promptLen).map(Number);
+            const ids = [], ps = [];
+            toks.forEach((t, j) => { if (t < 50257 && j < rec.probs.length){ ids.push(t); ps.push(rec.probs[j]); } });
+            const re = /[\p{L}\p{N}]/u, count = (s) => { let n = 0; for (const ch of s) if (re.test(ch)) n++; return n; };
+            cf = []; let prevN = 0, pending = 1;
+            for (let j = 0; j < ids.length; j++){
+              pending = Math.min(pending, ps[j]);
+              const s = pipe.tokenizer.decode(ids.slice(0, j + 1), { skip_special_tokens: true });
+              if (s.endsWith('�')) continue;
+              const n = count(s);
+              for (let k = prevN; k < n; k++) cf.push(pending);
+              if (n > prevN){ prevN = n; pending = 1; }
+            }
+          }
+        } catch { cf = null; }
+      }
+      return { chunks, conf: cf };
+    },
+    async embed({ audios }){
+      const { processor, model } = M.spk.obj;
+      const res = [];
+      for (const a of audios){
+        const inputs = await processor(a);
+        const out = await model(inputs);
+        res.push(Float32Array.from(out.embeddings.data));
+      }
+      return res;
+    },
+    async generate({ messages, max_new_tokens }){
+      const gen = M.llm.obj;
+      const streamer = new tf.TextStreamer(gen.tokenizer, {
+        skip_prompt: true, skip_special_tokens: true,
+        callback_function: (t) => emit({ type: 'token', text: t })
+      });
+      const out = await gen(messages, { max_new_tokens, do_sample: false, repetition_penalty: 1.05, streamer });
+      const g = out[0].generated_text;
+      return Array.isArray(g) ? g[g.length - 1].content : String(g);
+    }
+  };
+}
+
+const workerSrc = `
+const post = (m) => self.postMessage(m);
+const makeEngine = ${makeEngine.toString()};
+let engine = null;
+const ready = import('${TF_URL}').then(tf => { engine = makeEngine(tf, post); });
+self.onmessage = async (e) => {
+  const { id, fn, args } = e.data;
+  try {
+    try { await ready; } catch (err) { throw new Error('無法載入 AI 程式庫（' + (err && err.message || err) + '）'); }
+    const result = await engine[fn](args);
+    post({ type: 'result', id, result });
+  } catch (err) { post({ type: 'error', id, message: String(err && err.message || err) }); }
+};`;
+
+class Engine {
+  constructor(){ this.mode = 'worker'; this.worker = null; this.main = null; this.pending = new Map(); this.seq = 0; this.onEvent = null; }
+  _worker(){
+    if (this.worker) return this.worker;
+    const w = new Worker(URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' })));
+    w.onmessage = (e) => {
+      const m = e.data;
+      if (m.type === 'dl' || m.type === 'token'){ this.onEvent && this.onEvent(m); return; }
+      const p = this.pending.get(m.id); if (!p) return;
+      this.pending.delete(m.id);
+      if (m.type === 'error') p.reject(new Error(m.message)); else p.resolve(m.result);
+    };
+    w.onerror = (e) => {
+      const err = Object.assign(new Error(e.message || '背景執行失敗'), { fatal: true });
+      for (const p of this.pending.values()) p.reject(err);
+      this.pending.clear();
+    };
+    return (this.worker = w);
+  }
+  call(fn, args, onEvent, transfer){
+    this.onEvent = onEvent || null;
+    const id = ++this.seq;
+    return new Promise((resolve, reject) => {
+      if (this.mode === 'worker'){
+        let w; try { w = this._worker(); } catch (err) { return reject(Object.assign(err, { fatal: true })); }
+        this.pending.set(id, { resolve, reject });
+        w.postMessage({ id, fn, args }, transfer || []);
+      } else {
+        (async () => {
+          if (!this.main){
+            const tf = await import(TF_URL);
+            this.main = makeEngine(tf, (m) => this.onEvent && this.onEvent(m));
+          }
+          return this.main[fn](args);
+        })().then(resolve, reject);
+      }
+    });
+  }
+  terminate(){
+    if (this.worker){ this.worker.terminate(); this.worker = null; }
+    if (this.mode === 'main') this.main = null;
+    for (const p of this.pending.values()) p.reject(new Error('已取消'));
+    this.pending.clear();
+  }
+}
+const engine = new Engine();
+
+let devCache = null;
+async function detectDevice(){
+  if (devCache) return devCache;
+  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+  let gpu = null;
+  try { const a = navigator.gpu && await navigator.gpu.requestAdapter(); if (a) gpu = { f16: a.features.has('shader-f16') }; } catch {}
+  return (devCache = { mobile, gpu });
+}
+async function resolveTier(){
+  const { mobile, gpu } = await detectDevice();
+  const pref = $('tier').value;
+  if (pref !== 'auto') return pref;
+  return mobile ? 'low' : (gpu ? 'high' : 'mid');
+}
+// 依效能等級選擇辨識模型
+async function asrSpec(){
+  const tier = await resolveTier();
+  const { gpu } = await detectDevice();
+  const f16 = !!(gpu && gpu.f16);
+  const fbSmall = { id: M_SMALL, dtype: 'q8' };
+  if (tier === 'high' && gpu){
+    return { tier, label: 'large-v3-turbo', name: 'asr', task: 'automatic-speech-recognition', id: M_TURBO, device: 'webgpu',
+      dtype: f16 ? { encoder_model: 'fp16', decoder_model_merged: 'fp16' } : { encoder_model: 'q4', decoder_model_merged: 'q4' }, fallback: fbSmall };
+  }
+  if (tier === 'low'){
+    if (gpu && f16) return { tier, label: 'small', name: 'asr', task: 'automatic-speech-recognition', id: M_SMALL, device: 'webgpu',
+      dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4' }, fallback: { id: M_BASE, dtype: 'q8' } };
+    return { tier, label: 'base', name: 'asr', task: 'automatic-speech-recognition', id: M_BASE, device: 'wasm', dtype: 'q8' };
+  }
+  // 中（或選了高但沒有顯示卡）
+  if (gpu) return { tier: 'mid', label: 'small', name: 'asr', task: 'automatic-speech-recognition', id: M_SMALL, device: 'webgpu',
+    dtype: { encoder_model: f16 ? 'fp16' : 'fp32', decoder_model_merged: 'q4' }, fallback: fbSmall };
+  return { tier: 'mid', label: 'small', name: 'asr', task: 'automatic-speech-recognition', id: M_SMALL, device: 'wasm', dtype: 'q8' };
+}
+async function updateTierInfo(){
+  const { mobile, gpu } = await detectDevice();
+  const tier = await resolveTier();
+  const auto = $('tier').value === 'auto';
+  const desc = {
+    low: '辨識用 <b>small</b>（手機支援顯示卡加速時）或 <b>base</b> 模型，約 80–400 MB。速度優先，適合現場錄音。',
+    mid: '辨識用 <b>small</b> 模型，約 250 MB，以 CPU 運算。準確度中等，3 小時的內容可能需要數小時。',
+    high: '辨識用 <b>large-v3-turbo</b> 模型，約 0.8–1.6 GB（第一次下載）。準確度最高，速度也最快。',
+  }[tier];
+  const env = mobile ? '手機' : '電腦';
+  $('tier-info').innerHTML = `${auto ? '自動偵測結果：' : '目前：'}<b>${TIER_LABEL[tier]}</b>（此裝置：${env}，${gpu ? '支援顯示卡加速' : '不支援顯示卡加速'}）<br>${desc}` +
+    (tier === 'high' && !gpu ? '<br><span style="color:var(--warn)">此裝置沒有顯示卡加速，會自動改用「中」等級的模型。</span>' : '');
+}
+
+// 載入模型：Worker 失敗 → 改主畫面；顯示卡失敗 → 改 CPU
+async function loadModel(spec, onProgress){
+  const files = {};
+  const onDl = (m) => {
+    const p = m.p || {};
+    if (p.status === 'progress' && p.total){
+      files[p.file] = { loaded: p.loaded, total: p.total };
+      let L = 0, T = 0; for (const f in files){ L += files[f].loaded; T += files[f].total; }
+      onProgress(L / T, '下載模型 ' + Math.round(L / 1048576) + ' / ' + Math.round(T / 1048576) + ' MB');
+    } else if (p.status === 'ready') onProgress(1, '初始化模型中…');
+  };
+  const attempt = (s) => engine.call('load', { name: s.name, task: s.task, id: s.id, device: s.device, dtype: s.dtype }, onDl).then(() => s);
+  try { return await attempt(spec); }
+  catch (err){
+    if (isCancelled()) throw err;
+    console.warn('模型載入失敗，嘗試替代方式：', err);
+    if (engine.mode === 'worker' && (err.fatal || /程式庫|Worker|背景/.test(err.message))){
+      engine.terminate(); engine.mode = 'main';
+      try { return await attempt(spec); } catch (e2){ err = e2; if (isCancelled()) throw e2; }
+    }
+    if (spec.device === 'webgpu' && spec.fallback){
+      onProgress(0, '改用相容模式…');
+      return await attempt({ ...spec, ...spec.fallback, device: 'wasm', label: spec.fallback.id === M_BASE ? 'base' : 'small' });
+    }
+    throw err;
+  }
+}
+async function loadLLM(onProgress){
+  const tier = await resolveTier();
+  const { gpu } = await detectDevice();
+  let id = LLM_LITE, device = 'wasm', dtype = 'q8';
+  if (tier === 'high' && gpu && gpu.f16){ id = LLM_PRO; device = 'webgpu'; dtype = 'q4f16'; }
+  else if (gpu){ device = 'webgpu'; dtype = gpu.f16 ? 'q4f16' : 'q4'; }
+  try { await engine.call('drop', { name: 'asr' }); await engine.call('drop', { name: 'spk' }); await engine.call('drop', { name: 'vad' }); } catch {}
+  return loadModel({ name: 'llm', task: 'text-generation', id, device, dtype, fallback: { id: LLM_LITE, dtype: 'q8' } }, onProgress);
+}
+const llm = (messages, max_new_tokens, onToken) =>
+  engine.call('generate', { messages, max_new_tokens }, (m) => { if (m.type === 'token' && onToken) onToken(m.text); });
+
+/* =====================================================================
+   資料庫
+   projects：逐字稿；media：影片；pcm：現場錄音的原始聲音（每 5 秒一段）；parts：處理中的辨識結果
+   ===================================================================== */
+const key6 = (pid, i) => pid + ':' + String(i).padStart(6, '0');
+const DB = {
+  _db: null,
+  open(){
+    if (this._db) return this._db;
+    return (this._db = new Promise((res, rej) => {
+      const r = indexedDB.open('mp4srt', 2);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('projects')) d.createObjectStore('projects', { keyPath: 'id' });
+        for (const n of ['media', 'pcm', 'parts']) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n);
+      };
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }));
+  },
+  async run(storeName, mode, fn){
+    const d = await this.open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(storeName, mode); const req = fn(t.objectStore(storeName));
+      t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  },
+  put(p){ const { _busy, ...clean } = p; return this.run('projects', 'readwrite', s => s.put(clean)); },
+  get(id){ return this.run('projects', 'readonly', s => s.get(id)); },
+  all(){ return this.run('projects', 'readonly', s => s.getAll()); },
+  putMedia(id, blob){ return this.run('media', 'readwrite', s => s.put(blob, id)); },
+  getMedia(id){ return this.run('media', 'readonly', s => s.get(id)); },
+  putKV(st, k, v){ return this.run(st, 'readwrite', s => s.put(v, k)); },
+  getKV(st, k){ return this.run(st, 'readonly', s => s.get(k)); },
+  range(pid){ return IDBKeyRange.bound(pid + ':', pid + ':￿'); },
+  getRange(st, pid){ return this.run(st, 'readonly', s => s.getAll(this.range(pid))); },
+  keysRange(st, pid){ return this.run(st, 'readonly', s => s.getAllKeys(this.range(pid))); },
+  delRange(st, pid){ return this.run(st, 'readwrite', s => s.delete(this.range(pid))); },
+  async del(id){
+    await this.run('projects', 'readwrite', s => s.delete(id)); await this.run('media', 'readwrite', s => s.delete(id));
+    await this.delRange('pcm', id); await this.delRange('parts', id);
+  }
+};
+
+/* =====================================================================
+   自訂詞庫
+   ===================================================================== */
+function getDict(){
+  return store.get('dict', '').split('\n').map(l => l.split(/\s*(?:=|→|->)\s*/)).filter(p => p.length === 2 && p[0].trim()).map(([a, b]) => [a.trim(), b.trim()]);
+}
+function applyDictText(t, dict){ for (const [a, b] of dict) if (a && t.includes(a)) t = t.split(a).join(b); return t; }
+function applyDictSeg(s, dict){
+  const t = applyDictText(s.text, dict);
+  if (t === s.text) return false;
+  s.text = t; s.low = null;
+  return true;
+}
+const dictDlg = $('dict-dlg');
+function openDict(){ $('dict-text').value = store.get('dict', ''); dictDlg.showModal(); }
+$('dict-btn-home').addEventListener('click', openDict);
+$('dict-close').addEventListener('click', () => dictDlg.close());
+$('dict-save').addEventListener('click', () => { store.set('dict', $('dict-text').value.trim()); dictDlg.close(); });
+function addToDict(a, b){
+  if (!a) return;
+  const lines = store.get('dict', '').split('\n').filter(l => l.trim() && !l.startsWith(a + '='));
+  lines.push(a + '=' + b); store.set('dict', lines.join('\n'));
+}
+
+/* =====================================================================
+   畫面切換與首頁
+   ===================================================================== */
+const views = ['home', 'live', 'progress', 'editor'];
+function show(name){
+  for (const v of views) $('view-' + v).hidden = v !== name;
+  document.body.classList.toggle('wide', name === 'editor');
+  $('footer').hidden = name === 'editor' || name === 'live';
+  if (name !== 'home') $('home-notice').hidden = true;
+  window.scrollTo({ top: 0 });
+}
+try { if (window.self !== window.top) $('frame-notice').hidden = false; } catch { $('frame-notice').hidden = false; }
+
+/* ---------- 安裝成 App（PWA） ---------- */
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('app-version').textContent = '版本 ' + APP_VERSION + (isStandalone() ? ' · App 模式' : '');
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('離線功能無法啟用', err));
+}
+let installEvt = null;
+const installDismissed = () => store.get('installDismissed', '') === '1';
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); installEvt = e;
+  if (!isStandalone() && !installDismissed()) $('install-card').hidden = false;
+});
+if (isIOS() && !isStandalone() && !installDismissed() && location.protocol === 'https:') $('install-card').hidden = false;
+$('install-btn').addEventListener('click', async () => {
+  if (installEvt){
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => null);
+    installEvt = null;
+    if (r && r.outcome === 'accepted') $('install-card').hidden = true;
+  } else $('ios-dlg').showModal();
+});
+$('install-close').addEventListener('click', () => { $('install-card').hidden = true; store.set('installDismissed', '1'); });
+$('ios-close').addEventListener('click', () => $('ios-dlg').close());
+window.addEventListener('appinstalled', () => { $('install-card').hidden = true; keepStorage(); });
+// 請瀏覽器不要自動清除錄音與逐字稿
+async function keepStorage(){ try { if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch {} }
+async function updateStorageLine(){
+  try {
+    if (!navigator.storage || !navigator.storage.estimate) return;
+    const { usage, quota } = await navigator.storage.estimate();
+    const kept = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+    $('storage-line').textContent = `已使用儲存空間 ${fmtBytes(usage)}（可用約 ${fmtBytes(quota)}）` + (kept ? ' · 已設為永久保存' : ' · 空間不足時瀏覽器可能自動清除，建議安裝成 App 或定期匯出');
+  } catch {}
+}
+function fmtBytes(n){ n = n || 0; return n > 1e9 ? (n / 1e9).toFixed(1) + ' GB' : Math.round(n / 1e6) + ' MB'; }
+$('adv').addEventListener('toggle', () => { if ($('adv').open) updateStorageLine(); });
+if (isStandalone()) keepStorage();
+for (const [id, prop] of [['tier','value'],['lang','value'],['diar','value'],['trad','checked'],['vad','checked'],['conf','checked'],['autopunct','checked']]){
+  const v = store.get(id, null);
+  if (v != null) $(id)[prop] = prop === 'checked' ? v === '1' : v;
+  $(id).addEventListener('change', () => { store.set(id, prop === 'checked' ? ($(id).checked ? '1' : '0') : $(id).value); if (id === 'tier') updateTierInfo(); });
+}
+updateTierInfo();
+function currentOpts(){
+  return { lang: $('lang').value, diar: $('diar').value, trad: $('trad').checked, vad: $('vad').checked, conf: $('conf').checked, autopunct: $('autopunct').checked };
+}
+
+const drop = $('drop'), fileInput = $('file');
+drop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files.length) runQueue([...fileInput.files]); fileInput.value = ''; });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const files = [...e.dataTransfer.files].filter(f => /^(video|audio)\//.test(f.type) || /\.(mp4|m4a|mov|mkv|webm|mp3|wav|aac|ogg|flac)$/i.test(f.name));
+  if (!$('view-home').hidden && files.length) runQueue(files);
+});
+$('live-btn').addEventListener('click', () => startLive());
+// 從主畫面「錄音」捷徑開啟：提示點一下開始（手機必須由使用者點擊才能開麥克風）
+if (new URLSearchParams(location.search).get('action') === 'live'){
+  const n = $('home-notice'); n.textContent = '點下方「現場錄音轉 SRT」開始錄音。'; n.hidden = false;
+  $('live-btn').focus();
+  history.replaceState(null, '', location.pathname);
+}
+
+async function renderHistory(){
+  const box = $('history');
+  let list = [];
+  try { list = await DB.all(); } catch { box.innerHTML = '<div class="empty">此瀏覽器無法儲存歷史紀錄</div>'; return; }
+  list.sort((a, b) => b.created - a.created);
+  if (!list.length){ box.innerHTML = '<div class="empty">還沒有任何逐字稿</div>'; return; }
+  box.innerHTML = '';
+  for (const p of list){
+    const el = document.createElement('div');
+    el.className = 'h-item';
+    const spkN = (p.speakers || []).length;
+    const done = (p.segments || []).filter(s => s.ok).length;
+    const when = new Date(p.created).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' });
+    let meta;
+    if (p.status === 'processing'){
+      const pct = p.duration ? Math.round((p.job.doneUntil || 0) / p.duration * 100) : 0;
+      meta = `${when} · <span class="warn">處理中斷（已完成 ${pct}%），點一下接續</span>`;
+    } else if (p.status === 'recording'){
+      meta = `${when} · <span class="warn">錄音未完成（已錄 ${fmtHMS(p.duration || 0)}），點一下繼續</span>`;
+    } else {
+      meta = `${when} · ${p.source === 'live' ? '現場錄音 · ' : ''}${fmtDur(p.duration)}${spkN > 1 ? ' · ' + spkN + ' 位講者' : ''}${p.summary ? ' · 已整理重點' : ''}${p.trLang ? ' · 已翻譯' : ''}${done ? ` · 已校對 ${Math.round(done / Math.max(1, p.segments.length) * 100)}%` : ''}`;
+    }
+    el.innerHTML = `<div class="h-main"><div class="h-name">${esc(p.name)}</div><div class="h-meta">${meta}</div></div>
+      <button class="icon-btn" title="刪除" aria-label="刪除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>`;
+    el.addEventListener('click', () => openProject(p.id));
+    el.querySelector('button').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`確定要刪除「${p.name}」嗎？`)) return;
+      await DB.del(p.id); renderHistory();
+    });
+    box.appendChild(el);
+  }
+}
+renderHistory();
+
+// 繼續未完成的工作
+function askResume(title, text, buttons){
+  return new Promise((resolve) => {
+    const d = $('resume-dlg');
+    $('resume-title').textContent = title; $('resume-text').textContent = text;
+    const box = $('resume-actions'); box.innerHTML = '';
+    for (const [label, val, cls] of buttons){
+      const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label; b.type = 'button';
+      b.onclick = () => { d.close(); resolve(val); }; box.appendChild(b);
+    }
+    d.onclose = () => resolve(null);
+    d.showModal();
+  });
+}
+
+/* =====================================================================
+   音訊：分段讀取（支援 3 小時以上的檔案，不會一次載入整個檔案）
+   ===================================================================== */
+let cancelled = false, busy = false, wakeLock = null, taskCancelled = false;
+const isCancelled = () => cancelled || taskCancelled;
+const isMobile = () => devCache ? devCache.mobile : /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+// 一次解碼整個檔案的上限（超過就必須用分段讀取）
+const wholeLimit = () => isMobile() ? 350e6 : 1.2e9;
+
+// 用瀏覽器內建的重新取樣（品質較好）把任意取樣率轉成 16kHz
+async function resampleTo16k(f32, sr){
+  if (sr === SR) return f32;
+  const len = Math.max(1, Math.round(f32.length * SR / sr));
+  const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const ctx = new Ctx(1, len, SR);
+  const b = ctx.createBuffer(1, f32.length, sr);
+  b.copyToChannel ? b.copyToChannel(f32, 0) : b.getChannelData(0).set(f32);
+  const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start();
+  const r = await ctx.startRendering();
+  return r.getChannelData(0);
+}
+async function decodeToMono16k(buf){
+  const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const ctx = new Ctx(1, SR, SR);
+  const decoded = await new Promise((res, rej) => { const p = ctx.decodeAudioData(buf, res, rej); if (p && p.then) p.then(res, rej); });
+  let mono;
+  if (decoded.numberOfChannels === 1) mono = decoded.getChannelData(0);
+  else {
+    mono = new Float32Array(decoded.length); const n = decoded.numberOfChannels;
+    for (let c = 0; c < n; c++){ const d = decoded.getChannelData(c); for (let i = 0; i < d.length; i++) mono[i] += d[i] / n; }
+  }
+  if (decoded.sampleRate !== SR) mono = await resampleTo16k(mono, decoded.sampleRate);
+  return mono;
+}
+function frameEnergy(a, frame){
+  const n = Math.ceil(a.length / frame), e = new Float32Array(n);
+  for (let f = 0; f < n; f++){ let s = 0; const x = f * frame, y = Math.min(a.length, x + frame); for (let i = x; i < y; i++) s += a[i] * a[i]; e[f] = Math.sqrt(s / Math.max(1, y - x)); }
+  return e;
+}
+// 在 18–29.5 秒之間找最安靜的地方切開
+function bestCut(a){
+  const frame = SR / 50, win = 15, e = frameEnergy(a, frame);
+  const minF = Math.floor(MIN_CHUNK * 50), maxF = Math.min(e.length, Math.floor(MAX_CHUNK * 50));
+  let best = maxF, bestE = Infinity;
+  for (let f = minF; f <= maxF - win; f++){ let s = 0; for (let k = 0; k < win; k++) s += e[f + k]; if (s < bestE){ bestE = s; best = f + (win >> 1); } }
+  return Math.min(a.length, best * frame);
+}
+// 串流切段器：持續接收 16kHz 聲音，每累積約 30 秒就在安靜處切出一段
+class Chunker {
+  constructor(t0){ this.parts = []; this.len = 0; this.t0 = t0; }
+  push(f){ if (f.length){ this.parts.push(f); this.len += f.length; } }
+  _copy(n, remove){
+    const out = new Float32Array(n); let o = 0, i = 0;
+    while (o < n){ const p = this.parts[i]; const k = Math.min(p.length, n - o); out.set(p.subarray(0, k), o); o += k;
+      if (remove){ if (k === p.length) this.parts.shift(); else { this.parts[0] = p.subarray(k); } } else i++; }
+    if (remove) this.len -= n;
+    return out;
+  }
+  *take(final){
+    const MAXS = Math.floor(MAX_CHUNK * SR);
+    while (this.len >= MAXS + SR / 2 || (final && this.len > SR * 0.2)){
+      const n = this.len <= MAXS ? this.len : bestCut(this._copy(MAXS, false));
+      const audio = this._copy(n, true), t0 = this.t0;
+      this.t0 += n / SR;
+      yield { t0, audio };
+    }
+    if (final && this.len){ this.t0 += this.len / SR; this.parts = []; this.len = 0; }
+  }
+}
+
+/* ---------- MP4 / MOV / M4A：自己解析檔案結構 + WebCodecs 解碼 ---------- */
+/* ---------- MP4／MOV 音軌解析（只讀取需要的部分，不載入整個檔案） ---------- */
+const str4 = (dv, o) => String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+function mp4Children(dv, start, end){
+  const out = []; let o = start;
+  while (o + 8 <= end){
+    let size = dv.getUint32(o); const type = str4(dv, o + 4); let hdr = 8;
+    if (size === 1){ size = Number(dv.getBigUint64(o + 8)); hdr = 16; }
+    else if (size === 0) size = end - o;
+    if (size < hdr) break;
+    out.push({ type, start: o + hdr, end: Math.min(end, o + size) });
+    o += size;
+  }
+  return out;
+}
+async function mp4FindMoov(file){
+  let off = 0;
+  while (off + 8 <= file.size){
+    const dv = new DataView(await file.slice(off, off + 16).arrayBuffer());
+    let size = dv.getUint32(0); const type = str4(dv, 4); let hdr = 8;
+    if (size === 1){ size = Number(dv.getBigUint64(8)); hdr = 16; }
+    else if (size === 0) size = file.size - off;
+    if (size < 8) return null;
+    if (type === 'moov') return new DataView(await file.slice(off + hdr, off + size).arrayBuffer());
+    off += size;
+  }
+  return null;
+}
+function descLen(dv, o){ let len = 0, n = 0, b; do { b = dv.getUint8(o + n); len = (len << 7) | (b & 0x7f); n++; } while ((b & 0x80) && n < 4); return [len, n]; }
+function parseEsds(dv, box){
+  let o = box.start + 4;                               // version + flags
+  const end = box.end;
+  let oti = 0, asc = null;
+  while (o < end){
+    const tag = dv.getUint8(o); const [len, n] = descLen(dv, o + 1); const body = o + 1 + n;
+    if (tag === 0x03){                                  // ES_Descriptor
+      let p = body + 2; const flags = dv.getUint8(p); p++;
+      if (flags & 0x80) p += 2;
+      if (flags & 0x40) p += 1 + dv.getUint8(p);
+      if (flags & 0x20) p += 2;
+      o = p; continue;
+    }
+    if (tag === 0x04){ oti = dv.getUint8(body); o = body + 13; continue; }   // DecoderConfigDescriptor
+    if (tag === 0x05){ asc = new Uint8Array(dv.buffer, dv.byteOffset + body, len).slice(); break; }
+    o = body + len;
+  }
+  return { oti, asc };
+}
+function opusHeadFromDOps(dv, box){
+  const s = box.start;
+  const ch = dv.getUint8(s + 1), preSkip = dv.getUint16(s + 2), rate = dv.getUint32(s + 4), gain = dv.getInt16(s + 8), fam = dv.getUint8(s + 10);
+  const extra = fam ? (box.end - (s + 11)) : 0;
+  const out = new DataView(new ArrayBuffer(19 + extra));
+  'OpusHead'.split('').forEach((c, i) => out.setUint8(i, c.charCodeAt(0)));
+  out.setUint8(8, 1); out.setUint8(9, ch); out.setUint16(10, preSkip, true); out.setUint32(12, rate, true); out.setInt16(16, gain, true); out.setUint8(18, fam);
+  for (let i = 0; i < extra; i++) out.setUint8(19 + i, dv.getUint8(s + 11 + i));
+  return new Uint8Array(out.buffer);
+}
+function mp4AudioTrack(dv){
+  for (const trak of mp4Children(dv, 0, dv.byteLength).filter(b => b.type === 'trak')){
+    const mdia = mp4Children(dv, trak.start, trak.end).find(b => b.type === 'mdia'); if (!mdia) continue;
+    const mk = mp4Children(dv, mdia.start, mdia.end);
+    const hdlr = mk.find(b => b.type === 'hdlr'); if (!hdlr || str4(dv, hdlr.start + 8) !== 'soun') continue;
+    const mdhd = mk.find(b => b.type === 'mdhd'); const v = dv.getUint8(mdhd.start);
+    const timescale = v === 1 ? dv.getUint32(mdhd.start + 20) : dv.getUint32(mdhd.start + 12);
+    const duration = v === 1 ? Number(dv.getBigUint64(mdhd.start + 24)) : dv.getUint32(mdhd.start + 16);
+    const minf = mk.find(b => b.type === 'minf'); if (!minf) continue;
+    const stbl = mp4Children(dv, minf.start, minf.end).find(b => b.type === 'stbl'); if (!stbl) continue;
+    const st = mp4Children(dv, stbl.start, stbl.end); const get = (t) => st.find(b => b.type === t);
+    const stsd = get('stsd'); const entry = mp4Children(dv, stsd.start + 8, stsd.end)[0]; if (!entry) continue;
+    const e = entry.start;
+    let channels = dv.getUint16(e + 16), sampleRate = dv.getUint32(e + 24) >>> 16;
+    const sver = dv.getUint16(e + 8);
+    const sub = mp4Children(dv, e + 28 + (sver === 1 ? 16 : sver === 2 ? 36 : 0), entry.end);
+    let codec = null, description = null;
+    if (entry.type === 'mp4a'){
+      let esds = sub.find(b => b.type === 'esds');
+      const wave = sub.find(b => b.type === 'wave');   // QuickTime .mov 把 esds 放在 wave 裡
+      if (!esds && wave) esds = mp4Children(dv, wave.start, wave.end).find(b => b.type === 'esds');
+      if (esds){
+        const { oti, asc } = parseEsds(dv, esds);
+        if (oti === 0x69 || oti === 0x6b) codec = 'mp3';
+        else if (asc && asc.length >= 2){
+          let aot = asc[0] >> 3; if (aot === 31) aot = 32 + (((asc[0] & 7) << 3) | (asc[1] >> 5));
+          codec = 'mp4a.40.' + aot; description = asc;
+          const fi = ((asc[0] & 7) << 1) | (asc[1] >> 7), cc = (asc[1] >> 3) & 15;
+          const rates = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+          if (fi < 13 && aot !== 31) sampleRate = rates[fi];
+          if (cc >= 1 && cc <= 7) channels = cc === 7 ? 8 : cc;
+        } else codec = 'mp4a.40.2';
+      } else codec = 'mp4a.40.2';
+    } else if (entry.type === 'Opus' || entry.type === 'opus'){
+      codec = 'opus'; sampleRate = 48000;
+      const dOps = sub.find(b => b.type === 'dOps'); if (dOps){ description = opusHeadFromDOps(dv, dOps); channels = dv.getUint8(dOps.start + 1); }
+    } else if (entry.type === '.mp3'){ codec = 'mp3'; }
+    else continue;
+    // 樣本大小
+    let count, sizes;
+    const stsz = get('stsz'), stz2 = get('stz2');
+    if (stsz){
+      const fixed = dv.getUint32(stsz.start + 4); count = dv.getUint32(stsz.start + 8); sizes = new Uint32Array(count);
+      if (fixed) sizes.fill(fixed); else for (let i = 0; i < count; i++) sizes[i] = dv.getUint32(stsz.start + 12 + 4 * i);
+    } else if (stz2){
+      const fs = dv.getUint8(stz2.start + 7); count = dv.getUint32(stz2.start + 8); sizes = new Uint32Array(count);
+      for (let i = 0; i < count; i++){
+        const b = stz2.start + 12;
+        sizes[i] = fs === 16 ? dv.getUint16(b + 2 * i) : fs === 8 ? dv.getUint8(b + i) : (i & 1 ? dv.getUint8(b + (i >> 1)) & 15 : dv.getUint8(b + (i >> 1)) >> 4);
+      }
+    } else continue;
+    // chunk 位置
+    const stco = get('stco'), co64 = get('co64'); let chunkOff;
+    if (stco){ const n = dv.getUint32(stco.start + 4); chunkOff = new Float64Array(n); for (let i = 0; i < n; i++) chunkOff[i] = dv.getUint32(stco.start + 8 + 4 * i); }
+    else if (co64){ const n = dv.getUint32(co64.start + 4); chunkOff = new Float64Array(n); for (let i = 0; i < n; i++) chunkOff[i] = Number(dv.getBigUint64(co64.start + 8 + 8 * i)); }
+    else continue;
+    const stsc = get('stsc'); const ne = dv.getUint32(stsc.start + 4);
+    const offsets = new Float64Array(count); let si = 0;
+    for (let k = 0; k < ne; k++){
+      const first = dv.getUint32(stsc.start + 8 + 12 * k), spc = dv.getUint32(stsc.start + 12 + 12 * k);
+      const nextFirst = k + 1 < ne ? dv.getUint32(stsc.start + 8 + 12 * (k + 1)) : chunkOff.length + 1;
+      for (let c = first; c < nextFirst && si < count; c++){
+        let off = chunkOff[c - 1];
+        for (let j = 0; j < spc && si < count; j++){ offsets[si] = off; off += sizes[si]; si++; }
+      }
+    }
+    // 時間
+    const stts = get('stts'); const nt = dv.getUint32(stts.start + 4);
+    const times = new Float64Array(count); let t = 0, ti = 0;
+    for (let k = 0; k < nt && ti < count; k++){
+      const cnt = dv.getUint32(stts.start + 8 + 8 * k), delta = dv.getUint32(stts.start + 12 + 8 * k);
+      for (let j = 0; j < cnt && ti < count; j++){ times[ti++] = t; t += delta; }
+    }
+    return { timescale, duration: duration || t, codec, description, sampleRate, channels, offsets, sizes, times, count };
+  }
+  return null;
+}
+
+
+function audioDataToMono(ad){
+  const n = ad.numberOfFrames, ch = ad.numberOfChannels, mono = new Float32Array(n);
+  try {
+    const tmp = new Float32Array(n);
+    for (let c = 0; c < ch; c++){ ad.copyTo(tmp, { planeIndex: c, format: 'f32-planar' }); for (let i = 0; i < n; i++) mono[i] += tmp[i] / ch; }
+  } catch {
+    // 部分瀏覽器不支援格式轉換：依原始格式讀取
+    const fmt = ad.format || 'f32';
+    if (fmt.endsWith('-planar')){
+      for (let c = 0; c < ch; c++){
+        const size = ad.allocationSize({ planeIndex: c }); const buf = new ArrayBuffer(size); ad.copyTo(buf, { planeIndex: c });
+        const v = fmt.startsWith('f32') ? new Float32Array(buf) : fmt.startsWith('s16') ? Float32Array.from(new Int16Array(buf), x => x / 32768) : Float32Array.from(new Int32Array(buf), x => x / 2147483648);
+        for (let i = 0; i < n; i++) mono[i] += v[i] / ch;
+      }
+    } else {
+      const size = ad.allocationSize({ planeIndex: 0 }); const buf = new ArrayBuffer(size); ad.copyTo(buf, { planeIndex: 0 });
+      const v = fmt.startsWith('f32') ? new Float32Array(buf) : fmt.startsWith('s16') ? Float32Array.from(new Int16Array(buf), x => x / 32768) : Float32Array.from(new Int32Array(buf), x => x / 2147483648);
+      for (let i = 0; i < n; i++){ let s = 0; for (let c = 0; c < ch; c++) s += v[i * ch + c]; mono[i] = s / ch; }
+    }
+  }
+  const sr = ad.sampleRate; ad.close();
+  return { mono, sr };
+}
+async function openMp4(file){
+  if (!window.AudioDecoder) return null;
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (String.fromCharCode(...head.slice(4, 8)) !== 'ftyp') return null;
+  const moov = await mp4FindMoov(file); if (!moov) return null;
+  const tr = mp4AudioTrack(moov); if (!tr || !tr.count) return null;
+  const cfg = { codec: tr.codec, sampleRate: tr.sampleRate, numberOfChannels: tr.channels };
+  if (tr.description) cfg.description = tr.description;
+  try { const s = await AudioDecoder.isConfigSupported(cfg); if (!s.supported) return null; } catch { return null; }
+  const total = tr.duration / tr.timescale;
+  return {
+    total, kind: 'mp4',
+    async *chunks(startSec, onProgress){
+      let i = 0; { let lo = 0, hi = tr.count - 1; const target = Math.max(0, startSec) * tr.timescale;
+        while (lo <= hi){ const m = (lo + hi) >> 1; if (tr.times[m] < target){ i = m + 1; lo = m + 1; } else hi = m - 1; } i = Math.min(i, tr.count); }
+      const outQ = []; let decErr = null;
+      const dec = new AudioDecoder({ output: (ad) => outQ.push(audioDataToMono(ad)), error: (e) => { decErr = e; } });
+      dec.configure(cfg);
+      const chunker = new Chunker(i < tr.count ? tr.times[i] / tr.timescale : total);
+      let native = [], nativeLen = 0, nativeSr = tr.sampleRate;
+      const drain = async (final) => {
+        while (outQ.length){ const { mono, sr } = outQ.shift(); nativeSr = sr; native.push(mono); nativeLen += mono.length; }
+        if (nativeLen >= nativeSr * 10 || (final && nativeLen)){
+          const all = new Float32Array(nativeLen); let o = 0; for (const p of native){ all.set(p, o); o += p.length; }
+          native = []; nativeLen = 0;
+          chunker.push(await resampleTo16k(all, nativeSr));
+        }
+      };
+      while (i < tr.count){
+        if (decErr) throw decErr;
+        if (cancelled) return;
+        // 讀一批連續的樣本（音訊樣本在檔案中通常一小段一小段連在一起）
+        let j = i + 1; while (j < tr.count && j - i < 400 && tr.offsets[j] === tr.offsets[j - 1] + tr.sizes[j - 1]) j++;
+        const start = tr.offsets[i], end = tr.offsets[j - 1] + tr.sizes[j - 1];
+        const bytes = new Uint8Array(await file.slice(start, end).arrayBuffer());
+        for (let k = i; k < j; k++){
+          const o = tr.offsets[k] - start;
+          dec.decode(new EncodedAudioChunk({ type: 'key', timestamp: Math.round(tr.times[k] / tr.timescale * 1e6), data: bytes.subarray(o, o + tr.sizes[k]) }));
+        }
+        i = j;
+        if (dec.decodeQueueSize > 200) await dec.flush();
+        await drain(false);
+        for (const c of chunker.take(false)) yield c;
+        onProgress && onProgress(Math.min(1, tr.times[Math.min(i, tr.count - 1)] / tr.timescale / total));
+      }
+      await dec.flush(); try { dec.close(); } catch {}
+      await drain(true);
+      for (const c of chunker.take(true)) yield c;
+    }
+  };
+}
+
+/* ---------- MP3：依影格切片解碼 ---------- */
+async function openMp3(file){
+  const head = new Uint8Array(await file.slice(0, 10).arrayBuffer());
+  const isID3 = head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33;
+  if (!isID3 && !(head[0] === 0xff && (head[1] & 0xe0) === 0xe0) && !/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg') return null;
+  let start = 0;
+  if (isID3) start = 10 + ((head[6] & 0x7f) << 21 | (head[7] & 0x7f) << 14 | (head[8] & 0x7f) << 7 | (head[9] & 0x7f));
+  const SLICE = 4 * 1024 * 1024;
+  const nextSync = async (pos) => {
+    const b = new Uint8Array(await file.slice(pos, Math.min(file.size, pos + 16384)).arrayBuffer());
+    for (let i = 0; i + 3 < b.length; i++){
+      if (b[i] === 0xff && (b[i + 1] & 0xe0) === 0xe0 && ((b[i + 2] >> 4) & 15) !== 15 && ((b[i + 2] >> 4) & 15) !== 0 && ((b[i + 2] >> 2) & 3) !== 3 && ((b[i + 1] >> 3) & 3) !== 1 && ((b[i + 1] >> 1) & 3) !== 0) return pos + i;
+    }
+    return Math.min(file.size, pos + b.length);
+  };
+  let total = 0;
+  return {
+    get total(){ return total; }, kind: 'mp3',
+    async *chunks(startSec, onProgress){
+      let off = start, t = 0;
+      const chunker = new Chunker(0);
+      let skip = Math.max(0, startSec) * SR, first = true;
+      while (off < file.size){
+        if (cancelled) return;
+        let end = Math.min(file.size, off + SLICE);
+        if (end < file.size) end = await nextSync(end);
+        const pcm = await decodeToMono16k(await file.slice(off, end).arrayBuffer());
+        if (first){ total = pcm.length / SR * (file.size - start) / Math.max(1, end - off); first = false; }
+        let piece = pcm;
+        if (skip > 0){ const k = Math.min(skip, piece.length); skip -= k; piece = piece.subarray(k); chunker.t0 += k / SR; }
+        chunker.push(piece);
+        for (const c of chunker.take(false)) yield c;
+        off = end; t += pcm.length / SR;
+        onProgress && onProgress(Math.min(1, (off - start) / (file.size - start)));
+      }
+      total = t;
+      for (const c of chunker.take(true)) yield c;
+    }
+  };
+}
+
+/* ---------- WAV：直接讀取 ---------- */
+async function openWav(file){
+  const h = new DataView(await file.slice(0, 4096).arrayBuffer());
+  if (h.byteLength < 44 || str4(h, 0) !== 'RIFF' || str4(h, 8) !== 'WAVE') return null;
+  let o = 12, fmt = null, dataOff = 0, dataLen = 0;
+  while (o + 8 <= h.byteLength){
+    const id = str4(h, o), size = h.getUint32(o + 4, true);
+    if (id === 'fmt ') fmt = { tag: h.getUint16(o + 8, true), ch: h.getUint16(o + 10, true), sr: h.getUint32(o + 12, true), bits: h.getUint16(o + 22, true) };
+    if (id === 'data'){ dataOff = o + 8; dataLen = Math.min(size, file.size - dataOff); break; }
+    o += 8 + size + (size & 1);
+  }
+  if (!fmt || !dataOff || ![1, 3, 65534].includes(fmt.tag) || ![16, 24, 32].includes(fmt.bits)) return null;
+  const bps = fmt.bits / 8 * fmt.ch, total = dataLen / bps / fmt.sr;
+  return {
+    total, kind: 'wav',
+    async *chunks(startSec, onProgress){
+      const chunker = new Chunker(Math.max(0, startSec));
+      let pos = dataOff + Math.floor(Math.max(0, startSec) * fmt.sr) * bps;
+      const step = Math.floor(fmt.sr * 10) * bps, end = dataOff + dataLen;
+      while (pos < end){
+        if (cancelled) return;
+        const buf = await file.slice(pos, Math.min(end, pos + step)).arrayBuffer(); const dv = new DataView(buf);
+        const n = Math.floor(buf.byteLength / bps), mono = new Float32Array(n);
+        for (let i = 0; i < n; i++){ let s = 0;
+          for (let c = 0; c < fmt.ch; c++){ const p = i * bps + c * fmt.bits / 8;
+            s += fmt.bits === 16 ? dv.getInt16(p, true) / 32768 : fmt.bits === 24 ? ((dv.getUint8(p) | dv.getUint8(p + 1) << 8 | dv.getInt8(p + 2) << 16) / 8388608) : (fmt.tag === 3 ? dv.getFloat32(p, true) : dv.getInt32(p, true) / 2147483648); }
+          mono[i] = s / fmt.ch; }
+        chunker.push(await resampleTo16k(mono, fmt.sr));
+        for (const c of chunker.take(false)) yield c;
+        pos += step;
+        onProgress && onProgress(Math.min(1, (pos - dataOff) / dataLen));
+      }
+      for (const c of chunker.take(true)) yield c;
+    }
+  };
+}
+
+/* ---------- 其他格式：一次解碼（有大小限制） ---------- */
+async function openWhole(file){
+  if (file.size > wholeLimit()) throw new Error(`這個檔案格式（${file.name.split('.').pop()}）需要一次載入，但檔案太大（${Math.round(file.size / 1048576)} MB）。請改用 MP4、M4A、MP3 或 WAV 格式。`);
+  const audio = await decodeToMono16k(await file.arrayBuffer());
+  const total = audio.length / SR;
+  return {
+    total, kind: 'whole',
+    async *chunks(startSec, onProgress){
+      const chunker = new Chunker(0);
+      const s0 = Math.floor(Math.max(0, startSec) * SR);
+      chunker.t0 = s0 / SR;
+      const step = SR * 60;
+      for (let i = s0; i < audio.length; i += step){
+        chunker.push(audio.subarray(i, Math.min(audio.length, i + step)));
+        for (const c of chunker.take(false)) yield c;
+        onProgress && onProgress(Math.min(1, (i + step) / audio.length));
+      }
+      for (const c of chunker.take(true)) yield c;
+    }
+  };
+}
+async function openAudioSource(file){
+  for (const open of [openMp4, openMp3, openWav]){
+    try { const s = await open(file); if (s) return s; } catch (err){ console.warn(open.name + ' 失敗，改用其他方式', err); }
+  }
+  return openWhole(file);
+}
+
+/* =====================================================================
+   單一段落的辨識與後處理（檔案模式與現場錄音共用）
+   ===================================================================== */
+let runningPeak = 0;
+function chunkIsSilent(audio){
+  const e = frameEnergy(audio, SR / 50); let peak = 0; for (const v of e) if (v > peak) peak = v;
+  runningPeak = Math.max(runningPeak * 0.999, peak);
+  return peak < Math.max(0.003, runningPeak * 0.02);
+}
+async function recognizeChunk(audio, t0, opts, dict){
+  const len = audio.length / SR;
+  let peak = 0; for (let i = 0; i < audio.length; i += 4) peak = Math.max(peak, Math.abs(audio[i]));
+  const a = audio.slice();
+  if (peak > 0.001 && peak < 0.5){ const g = Math.min(20, 0.9 / peak); for (let i = 0; i < a.length; i++) a[i] *= g; }
+  const res = await engine.call('asr', { audio: a, language: opts.lang, conf: opts.conf }, null, [a.buffer]);
+  let segs = chunksToSegments(res.chunks, t0, len);
+  if (opts.conf) attachConfidence(segs, res.conf);
+  segs = cleanSegments(segs);
+  if (opts.trad && (opts.lang === 'zh' || opts.lang === '')) segs = await toTraditionalSegs(segs);
+  if (dict && dict.length) segs.forEach(s => applyDictSeg(s, dict));
+  segs.forEach(s => { s.id = uid(); s.spk = null; });
+  if (opts.diar !== 'off' && segs.length) await embedSegs(audio, t0, segs);
+  return segs;
+}
+function chunksToSegments(chunks, off, len){
+  return chunks.map(r => {
+    let [a, b] = r.timestamp || [0, null];
+    a = Math.max(0, Math.min(a ?? 0, len));
+    b = (b == null || isNaN(b)) ? len : Math.min(b, len);
+    if (b <= a) b = Math.min(len, a + 1.5);
+    return { start: off + a, end: off + b, text: (r.text || '').trim() };
+  });
+}
+function attachConfidence(segs, conf){
+  if (!conf) return;
+  const total = segs.reduce((n, s) => n + countContent(s.text), 0);
+  if (total !== conf.length) return;
+  let k = 0;
+  for (const s of segs){
+    const n = countContent(s.text), low = [];
+    for (let i = 0; i < n; i++, k++){
+      if (conf[k] < LOW_CONF){ const last = low[low.length - 1]; if (last && last[1] === i) last[1] = i + 1; else low.push([i, i + 1]); }
+    }
+    s.low = low.length ? low : null;
+  }
+}
+async function embedSegs(audio, t0, segs){
+  const len = audio.length / SR;
+  const audios = segs.map(s => {
+    let a = s.start - t0, b = s.end - t0;
+    if (b - a < 1.5){ const c = (a + b) / 2; a = c - 0.75; b = c + 0.75; }
+    if (b - a > 8){ const c = (a + b) / 2; a = c - 4; b = c + 4; }
+    a = Math.max(0, a); b = Math.min(len, b);
+    const s0 = Math.floor(a * SR);
+    return audio.slice(s0, Math.max(Math.min(audio.length, s0 + SR / 2), Math.floor(b * SR)));
+  });
+  const embs = await engine.call('embed', { audios }, null, audios.map(x => x.buffer));
+  segs.forEach((s, j) => { s.emb = normalize(embs[j]); });
+}
+async function loadAsrModels(opts, onProgress){
+  try { await engine.call('drop', { name: 'llm' }); } catch {}
+  const spec = await loadModel(await asrSpec(), (f, t) => onProgress(opts.diar !== 'off' ? f * 0.85 : f, t));
+  if (opts.diar !== 'off') await loadModel({ name: 'spk', task: 'xvector', id: SPK_MODEL.id, device: 'wasm', dtype: SPK_MODEL.dtype }, (f, t) => onProgress(0.85 + 0.15 * f, t));
+  vadReady = false;
+  if (opts.vad){   // 實驗功能：AI 人聲偵測
+    try { await loadModel({ name: 'vad', task: 'vad', id: VAD_MODEL, device: 'wasm', dtype: 'fp32' }, () => {}); vadReady = true; }
+    catch (err){ console.warn('人聲偵測模型載入失敗，略過', err); }
+  }
+  return spec;
+}
+let vadReady = false;
+// 實驗功能：用 AI 判斷這段有沒有人說話（沒有就跳過，減少無聲處的錯字）
+async function hasSpeech(audio){
+  if (!vadReady) return true;
+  try {
+    const a = audio.slice();
+    const probs = await engine.call('vad', { audio: a, reset: true }, null, [a.buffer]);
+    let n = 0; for (const p of probs) if (p >= 0.5) n++;
+    return n >= 6;
+  } catch { return true; }
+}
+
+/* =====================================================================
+   模式一：影片／音檔轉 SRT（支援多檔排隊、中斷續傳）
+   ===================================================================== */
+function setProgress(pct, status){
+  pct = Math.max(0, Math.min(100, pct));
+  $('p-bar').style.width = pct.toFixed(1) + '%';
+  $('p-pct').textContent = Math.floor(pct) + '%';
+  document.querySelector('#view-progress .bar').setAttribute('aria-valuenow', Math.floor(pct));
+  if (status) $('p-status').textContent = status;
+}
+function setStep(step, state){
+  const li = document.querySelector(`#p-steps [data-s="${step}"]`);
+  if (li){ li.classList.remove('doing', 'done', 'skip'); if (state) li.classList.add(state); }
+}
+$('cancel').addEventListener('click', () => {
+  if ($('p-error').hidden || queueState){ cancelled = true; engine.terminate(); }
+  queueState = null;
+  releaseWake(); show('home'); renderHistory();
+});
+
+let queueState = null;
+async function runQueue(files, resumeProject){
+  if (busy || live) return alert('有工作正在進行中，請稍候。');
+  cancelled = false; taskCancelled = false;
+  keepStorage();
+  if (files.length === 1){
+    queueState = null;
+    const p = await transcribeFile(files[0], resumeProject);
+    if (p) openProject(p.id, p._media);
+    return;
+  }
+  queueState = { total: files.length, done: 0, failed: [] };
+  for (let i = 0; i < files.length; i++){
+    if (cancelled) return;
+    queueState.index = i;
+    const r = await transcribeFile(files[i], null, true);
+    if (cancelled) return;
+    if (r) queueState.done++; else queueState.failed.push(files[i].name);
+  }
+  const q = queueState; queueState = null;
+  show('home'); renderHistory();
+  const n = $('home-notice');
+  n.textContent = `已完成 ${q.done} 個檔案` + (q.failed.length ? `，${q.failed.length} 個失敗：${q.failed.join('、')}` : '。點下方歷史紀錄即可開啟。');
+  n.hidden = false;
+}
+
+async function transcribeFile(file, resume, inQueue){
+  $('p-name').textContent = file.name;
+  $('p-queue').hidden = !queueState;
+  if (queueState) $('p-queue').textContent = `批次處理：第 ${queueState.index + 1} / ${queueState.total} 個檔案`;
+  $('p-error').hidden = true; $('p-hint').hidden = false;
+  $('cancel').textContent = queueState ? '全部取消' : '取消';
+  document.querySelectorAll('#p-steps li').forEach(li => li.className = '');
+  setProgress(0, '準備中…');
+  show('progress');
+  requestWake();
+  let project = resume;
+  try {
+    const opts = resume ? resume.job.opts : currentOpts();
+    if (!project){
+      project = { id: uid(), name: file.name.replace(/\.[^.]+$/, '') || '未命名', created: Date.now(), source: 'file', status: 'processing',
+        duration: 0, segments: [], speakers: [], summary: null, qa: [], marks: [], mediaType: file.type || '', hasMedia: false,
+        job: { opts, fileName: file.name, fileSize: file.size, fileMod: file.lastModified, doneUntil: 0, parts: 0 } };
+    }
+    // 1) 模型
+    setStep('model', 'doing');
+    const spec = await loadAsrModels(opts, (f, t) => setProgress(8 * f, t));
+    project.model = spec.label; project.tier = spec.tier;
+    if (cancelled) return null;
+    setStep('model', 'done');
+
+    // 2) 讀取與辨識
+    setStep('asr', 'doing');
+    setProgress(8, '讀取檔案中…');
+    const src = await openAudioSource(file);
+    if (src.total) project.duration = src.total;
+    await DB.put(project);
+    const dict = getDict();
+    const endPct = opts.diar === 'off' ? (opts.autopunct ? 85 : 97) : (opts.autopunct ? 78 : 92);
+    const t0 = performance.now(), startAt = project.job.doneUntil || 0;
+    runningPeak = 0;
+    for await (const c of src.chunks(startAt, null)){
+      if (cancelled) return null;
+      const cEnd = c.t0 + c.audio.length / SR;
+      const total = src.total || project.duration || cEnd;
+      let eta = '';
+      const doneSec = c.t0 - startAt;
+      if (doneSec > 20){ const rate = (performance.now() - t0) / 1000 / doneSec; eta = '，約剩 ' + fmtDur((total - c.t0) * rate); }
+      setProgress(8 + (endPct - 8) * Math.min(1, c.t0 / total), '辨識中 ' + fmtClock(c.t0) + ' / ' + fmtClock(total) + eta);
+      if (!chunkIsSilent(c.audio) && await hasSpeech(c.audio)){
+        const segs = await recognizeChunk(c.audio, c.t0, opts, dict);
+        if (cancelled) return null;
+        if (segs.length) await DB.putKV('parts', key6(project.id, project.job.parts++), segs);
+      }
+      project.job.doneUntil = cEnd;
+      project.duration = Math.max(project.duration, cEnd);
+      await DB.put(project);
+    }
+    if (cancelled) return null;
+    setStep('asr', 'done');
+
+    // 3) 影片存檔（檔案太大就不存，之後可重新選擇）
+    if (!project.hasMedia && file.size <= (isMobile() ? 250e6 : 800e6)){
+      try { await DB.putMedia(project.id, file); project.hasMedia = true; } catch (e){ console.warn('影片無法存入瀏覽器', e); }
+    }
+    // 4) 收尾：講者、標點、儲存
+    await finalizeProject(project, (pct, t) => setProgress(endPct + (99 - endPct) * pct, t), setStep);
+    setProgress(100, '完成');
+    releaseWake();
+    project._media = project.hasMedia ? null : file;
+    return project;
+  } catch (err){
+    releaseWake();
+    if (cancelled) return null;
+    if (inQueue){ console.error(err); return null; }
+    fail(err);
+    return null;
+  }
+}
+
+// 收尾：把各段結果合併、區分說話者、（選用）加標點，然後存成完成的逐字稿
+async function finalizeProject(project, progress, step){
+  step = step || (() => {});
+  const opts = project.job.opts;
+  const parts = await DB.getRange('parts', project.id);
+  let segs = parts.flat().sort((a, b) => a.start - b.start);
+  segs = cleanSegments(segs);
+  if (opts.diar !== 'off' && segs.some(s => s.emb)){
+    step('spk', 'doing'); progress(0.1, '區分說話者…');
+    await sleep(30);
+    const n = assignSpeakers(segs, opts.diar === 'auto' ? null : +opts.diar);
+    project.speakers = Array.from({ length: n }, (_, i) => '講者 ' + (i + 1));
+    step('spk', 'done');
+  } else step('spk', 'skip');
+  if (opts.autopunct && segs.length && (opts.lang === 'zh' || opts.lang === '')){
+    step('punct', 'doing');
+    try {
+      await loadLLM((f, t) => progress(0.2 + 0.1 * f, t));
+      await punctuateSegs(segs, (f, t) => progress(0.3 + 0.65 * f, t), () => cancelled);
+      step('punct', 'done');
+    } catch (err){ if (cancelled) throw err; console.warn('加標點失敗', err); step('punct', 'skip'); }
+  } else step('punct', 'skip');
+  step('save', 'doing'); progress(0.97, '儲存中…');
+  project.segments = segs;
+  project.status = 'done';
+  await DB.put(project);
+  await DB.delRange('parts', project.id);
+  step('save', 'done');
+}
+
+function fail(err){
+  console.error(err);
+  const msg = String(err && err.message || err);
+  let text = '發生錯誤：' + msg;
+  if (/decode|EncodingError/i.test(msg)) text += '\n\n無法讀取這個檔案的音訊，請確認檔案有聲音，或轉成 MP4（H.264／AAC）或 MP3 再試。';
+  else if (/memory|allocation|RangeError|OrtRun|bad_alloc/i.test(msg)) text += '\n\n裝置記憶體不足：請在「設定」把效能等級調低，或把影片剪短。';
+  else if (/fetch|network|程式庫|Failed to load|NetworkError|Load failed/i.test(msg)) text += '\n\n無法下載模型：請確認網路連線，並用 Chrome、Edge 或 Safari 直接開啟這個網頁（不要在聊天預覽視窗裡使用）。';
+  $('p-error').textContent = text + '\n\n已完成的部分都已保存，之後從歷史紀錄點一下就能接續。';
+  $('p-error').hidden = false; $('p-hint').hidden = true;
+  $('cancel').textContent = '返回';
+  $('p-status').textContent = '處理失敗';
+}
+
+/* =====================================================================
+   模式二：現場錄音轉 SRT（邊錄邊轉）
+   - 原始聲音每 5 秒存進瀏覽器，當掉也不會遺失
+   - 偵測到停頓就把那一句送去辨識，字幕幾秒後出現
+   - 手機跟不上時會排隊，錄完再補轉
+   ===================================================================== */
+let live = null;
+
+// 把錄音存成 5 秒一塊（16kHz、16-bit）
+class PcmStore {
+  constructor(pid, blocks){
+    this.pid = pid; this.blocks = blocks || [];          // [{key, t0, n}]
+    this.t = this.blocks.reduce((s, b) => s + b.n / SR, 0);
+    this.buf = []; this.n = 0; this.chain = Promise.resolve();
+  }
+  get total(){ return this.t + this.n / SR; }
+  push(f32){
+    const i16 = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++){ const x = Math.max(-1, Math.min(1, f32[i])); i16[i] = x < 0 ? x * 0x8000 : x * 0x7fff; }
+    this.buf.push(i16); this.n += i16.length;
+    if (this.n >= SR * 5) this.flush();
+  }
+  flush(){
+    if (!this.n) return this.chain;
+    const all = new Int16Array(this.n); let o = 0; for (const b of this.buf){ all.set(b, o); o += b.length; }
+    const rec = { t0: this.t, n: this.n, blob: new Blob([all.buffer]) };
+    const key = key6(this.pid, this.blocks.length);
+    this.blocks.push({ key, t0: rec.t0, n: rec.n });
+    this.t += this.n / SR; this.buf = []; this.n = 0;
+    this.chain = this.chain.then(() => DB.putKV('pcm', key, rec)).then(() => this.onFlush && this.onFlush(this.t)).catch(err => { console.error('錄音存檔失敗', err); live && live.warnStorage(); });
+    return this.chain;
+  }
+  // 讀出 [t0, t1) 秒的聲音
+  async read(t0, t1){
+    const out = new Float32Array(Math.max(0, Math.round((t1 - t0) * SR)));
+    for (const b of this.blocks){
+      const b1 = b.t0 + b.n / SR; if (b1 <= t0 || b.t0 >= t1) continue;
+      const rec = await DB.getKV('pcm', b.key); if (!rec) continue;
+      const i16 = new Int16Array(await rec.blob.arrayBuffer());
+      const from = Math.max(0, Math.round((t0 - b.t0) * SR)), to = Math.min(i16.length, Math.round((t1 - b.t0) * SR));
+      const dst = Math.round((b.t0 + from / SR - t0) * SR);
+      for (let i = from; i < to && dst + i - from < out.length; i++) out[dst + i - from] = i16[i] / 32768;
+    }
+    return out;
+  }
+}
+async function loadPcmBlocks(pid){
+  const keys = await DB.keysRange('pcm', pid), recs = await DB.getRange('pcm', pid);
+  return keys.map((k, i) => ({ key: k, t0: recs[i].t0, n: recs[i].n, blob: recs[i].blob }));
+}
+// 用錄音的聲音區塊組成 WAV 檔（不用把全部聲音載入記憶體）
+function wavFromBlocks(blocks){
+  const n = blocks.reduce((s, b) => s + b.n, 0);
+  const h = new DataView(new ArrayBuffer(44));
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) h.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); h.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+  h.setUint32(24, SR, true); h.setUint32(28, SR * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true); w(36, 'data'); h.setUint32(40, n * 2, true);
+  return new Blob([h.buffer, ...blocks.map(b => b.blob)], { type: 'audio/wav' });
+}
+
+// 即時切句：累積到有停頓（或快 30 秒）就切一段
+class LiveSegmenter {
+  constructor(t0, emit){ this.t0 = t0; this.rms = []; this.hist = []; this.acc = 0; this.accN = 0; this.emit = emit; }
+  push(f32){
+    for (let i = 0; i < f32.length; i++){
+      this.acc += f32[i] * f32[i]; this.accN++;
+      if (this.accN === 320){ const r = Math.sqrt(this.acc / 320); this.rms.push(r); this.hist.push(r); if (this.hist.length > 1500) this.hist.shift(); this.acc = 0; this.accN = 0; }
+    }
+    this.check();
+  }
+  thr(){
+    const s = this.hist.slice().sort((a, b) => a - b);
+    const floor = s.length ? s[Math.floor(s.length * 0.2)] : 0.005;
+    return Math.min(0.05, Math.max(0.004, floor * 2.5));
+  }
+  check(){
+    const n = this.rms.length, dur = n * 0.02; if (dur < 4) return;
+    const thr = this.thr();
+    let quiet = true; for (let i = n - 30; i < n; i++) if (this.rms[i] >= thr){ quiet = false; break; }   // 最後 0.6 秒都很安靜
+    if (quiet && dur >= 4) return this.cut(n - 15, thr);
+    if (dur >= 28){
+      let best = n, bestE = Infinity;
+      for (let f = 15 * 50; f <= n - 15; f++){ let s = 0; for (let k = 0; k < 15; k++) s += this.rms[f + k]; if (s < bestE){ bestE = s; best = f + 7; } }
+      this.cut(best, thr);
+    }
+  }
+  cut(k, thr){
+    let peak = 0, loud = 0; for (let i = 0; i < k; i++){ if (this.rms[i] > peak) peak = this.rms[i]; if (this.rms[i] > thr * 1.5) loud++; }
+    const t1 = this.t0 + k * 0.02;
+    this.emit({ t0: this.t0, t1, speech: loud >= 10 });        // 至少 0.2 秒明顯的聲音才當作有人說話
+    this.t0 = t1; this.rms = this.rms.slice(k);
+  }
+  flush(){ if (this.rms.length) this.cut(this.rms.length, this.thr()); }
+}
+
+class LiveSession {
+  constructor(project, blocks){
+    this.p = project; this.pcm = new PcmStore(project.id, blocks);
+    this.pcm.onFlush = (t) => { if (!this.p.segments.length){ this.p.duration = Math.max(this.p.duration || 0, t); return DB.put(this.p); } };
+    this.queue = []; this.running = false; this.recording = false; this.paused = false; this.stopping = false;
+    this.lines = []; this.dict = getDict(); this.opts = project.job.opts;
+  }
+  async start(){
+    // 麥克風 → 16kHz 單聲道
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    let ctx;
+    try { ctx = new AC({ sampleRate: SR }); } catch { ctx = new AC(); }
+    let src;
+    try { src = ctx.createMediaStreamSource(this.stream); }
+    catch { try { ctx.close(); } catch {} ctx = new AC(); src = ctx.createMediaStreamSource(this.stream); }
+    if (ctx.state === 'suspended') await ctx.resume();
+    this.ctx = ctx;
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const ratio = ctx.sampleRate / SR; let pos = 0;
+    proc.onaudioprocess = (e) => {
+      if (!this.recording || this.paused) return;
+      let d = e.inputBuffer.getChannelData(0);
+      if (ratio !== 1){   // 簡單的線性重新取樣
+        const out = new Float32Array(Math.ceil(d.length / ratio) + 1); let k = 0;
+        for (; pos < d.length - 1; pos += ratio){ const i = Math.floor(pos), f = pos - i; out[k++] = d[i] * (1 - f) + d[i + 1] * f; }
+        pos -= d.length; d = out.subarray(0, k);
+      } else d = new Float32Array(d);
+      this.pcm.push(d); this.seg.push(d);
+      let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * d[i];
+      this.level = Math.sqrt(s / (d.length / 4));
+    };
+    const mute = ctx.createGain(); mute.gain.value = 0;
+    src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    this.proc = proc; this.src = src;
+    this.seg = new LiveSegmenter(this.pcm.total, (c) => this.enqueue(c));
+    this.stream.getAudioTracks().forEach(t => { t.onended = () => this.interrupted(); });
+    this.recording = true; this.paused = false;
+    this.p.status = 'recording'; await DB.put(this.p);
+    if (!this.ticking){ this.ticking = true; this.tick(); }
+    this.work();
+  }
+  enqueue(c){
+    const p = this.pcm.flush();
+    p.then(() => { if (c.speech) this.queue.push(c); else this.p.job.asrUntil = Math.max(this.p.job.asrUntil || 0, c.t1); });
+  }
+  async work(){
+    if (this.running) return; this.running = true;
+    try {
+      while (true){
+        if (!this.ready || !this.queue.length){
+          if (this.stopping && !this.recording && (!this.queue.length || !this.ready)) break;
+          await sleep(300); if (live !== this) return; continue;
+        }
+        const c = this.queue.shift();
+        const audio = await this.pcm.read(c.t0, c.t1);
+        let segs = [];
+        try { if (await hasSpeech(audio)) segs = await recognizeChunk(audio, c.t0, this.opts, this.dict); }
+        catch (err){ if (live !== this) return; console.error(err); this.error = err; }
+        if (live !== this) return;
+        if (segs.length){
+          await DB.putKV('parts', key6(this.p.id, this.p.job.parts++), segs);
+          this.addLines(segs);
+        }
+        this.p.job.asrUntil = Math.max(this.p.job.asrUntil || 0, c.t1);
+        this.p.duration = this.pcm.total;
+        await DB.put(this.p);
+      }
+    } finally { this.running = false; }
+  }
+  addLines(segs){
+    const box = $('live-list');
+    const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
+    for (const s of segs){
+      const el = document.createElement('div');
+      el.className = 'live-line' + ((this.p.marks || []).some(m => m >= s.start - 1 && m <= s.end + 1) ? ' star' : '');
+      el.innerHTML = `<span class="t">${fmtHMS(s.start)}</span><span></span>`;
+      el.lastChild.textContent = s.text;
+      box.appendChild(el);
+    }
+    while (box.children.length > 300) box.firstChild.remove();
+    if (atBottom) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+  tick(){
+    if (live !== this) return;
+    $('live-time').textContent = fmtHMS(this.pcm.total);
+    $('live-level').style.width = Math.min(100, (this.level || 0) * 400) + '%';
+    const pend = this.queue.reduce((s, c) => s + c.t1 - c.t0, 0);
+    $('live-stat').textContent = `已轉寫到 ${fmtHMS(this.p.job.asrUntil || 0)}` + (pend > 1 ? ` · 待轉寫 ${fmtDur(pend)}` : '') +
+      (this.error ? ' · 辨識發生錯誤，錄音仍持續保存' : '') + ` · 模型 ${this.p.model || ''}`;
+    requestAnimationFrame(() => setTimeout(() => this.tick(), 250));
+  }
+  setState(){
+    $('live-dot').classList.toggle('paused', this.paused || !this.recording);
+    $('live-state').textContent = this.stopping ? '收尾中…' : !this.recording ? '錄音已停止' : this.paused ? '已暫停' : '錄音中';
+    $('live-pause').textContent = this.paused ? '繼續' : '暫停';
+    $('live-pause').disabled = !this.recording; $('live-mark').disabled = !this.recording;
+  }
+  pause(){ if (!this.recording) return; this.paused = !this.paused; if (this.paused){ this.seg.flush(); this.pcm.flush(); } this.setState(); }
+  mark(){
+    (this.p.marks ||= []).push(this.pcm.total);
+    DB.put(this.p);
+    const b = $('live-mark'); b.textContent = '已標記 ★'; setTimeout(() => b.textContent = '★ 標記重點', 1200);
+  }
+  releaseMic(){
+    try { this.proc && (this.proc.onaudioprocess = null); } catch {}
+    try { this.stream && this.stream.getTracks().forEach(t => { t.onended = null; t.stop(); }); } catch {}
+    try { this.ctx && this.ctx.close(); } catch {}
+  }
+  interrupted(){
+    if (!this.recording || this.stopping) return;
+    this.recording = false;
+    try { this.seg.flush(); } catch {}
+    this.pcm.flush();
+    this.releaseMic();
+    $('live-warn').hidden = false;
+    this.setState();
+  }
+  async resumeMic(){
+    $('live-warn').hidden = true;
+    try { await this.start(); this.setState(); }
+    catch (err){ $('live-warn').hidden = false; alert('無法使用麥克風：' + (err.message || err)); }
+  }
+  warnStorage(){ $('live-warn-text').textContent = '瀏覽器儲存空間不足，錄音可能無法完整保存。'; $('live-warn').hidden = false; }
+  async stop(){
+    if (this.stopping) return;
+    this.stopping = true;
+    if (this.recording){ this.recording = false; try { this.seg.flush(); } catch {} }
+    await this.pcm.flush();
+    this.releaseMic();
+    $('live-warn').hidden = true;
+    this.setState();
+    this.work();
+    if (!this.ready){   // 模型一直沒載入成功：保留錄音，之後可再轉寫
+      live = null; releaseWake(); show('home'); renderHistory();
+      return alert('辨識模型沒有載入成功，錄音已保存。之後可在歷史紀錄點選這份錄音，繼續轉寫。');
+    }
+    // 等待剩下的段落辨識完
+    while (this.queue.length || this.running){
+      const pend = this.queue.reduce((s, c) => s + c.t1 - c.t0, 0);
+      $('live-state').textContent = `收尾中：還有 ${fmtDur(pend)} 待轉寫`;
+      await sleep(400);
+      if (live !== this) return;
+    }
+    $('live-state').textContent = '整理逐字稿中…';
+    this.p.duration = this.pcm.total;
+    await finalizeProject(this.p, (pct, t) => { $('live-state').textContent = t || '整理中…'; });
+    live = null; releaseWake();
+    openProject(this.p.id);
+  }
+}
+
+async function startLive(resumeProject, finishOnly){
+  if (busy || live) return alert('有工作正在進行中，請稍候。');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert('此瀏覽器不支援錄音。');
+  cancelled = false; taskCancelled = false;
+  keepStorage();
+  let project = resumeProject, blocks = [];
+  if (!project){
+    const d = new Date();
+    project = { id: uid(), name: `現場錄音 ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      created: Date.now(), source: 'live', status: 'recording', duration: 0, segments: [], speakers: [], summary: null, qa: [], marks: [],
+      mediaType: 'audio/wav', hasMedia: false, job: { opts: currentOpts(), parts: 0, asrUntil: 0 } };
+  } else blocks = await loadPcmBlocks(project.id);
+  $('live-list').innerHTML = ''; $('live-warn').hidden = true;
+  $('live-state').textContent = '載入辨識模型…'; $('live-stat').textContent = '';
+  show('live');
+  const s = new LiveSession(project, blocks);
+  live = s;
+  requestWake();
+  if (!finishOnly){
+    try { await s.start(); }
+    catch (err){ live = null; show('home'); releaseWake(); return alert('無法使用麥克風：' + (err.message || err) + '\n請確認瀏覽器已允許麥克風權限。'); }
+  }
+  s.setState();
+  if (resumeProject){
+    const old = await DB.getRange('parts', project.id);
+    s.addLines(old.flat());
+    await requeueRange(s, project.job.asrUntil || 0, blocks.reduce((t, b) => t + b.n / SR, 0));
+  }
+  // 模型在背景載入；載入完成前的聲音會排隊等候
+  try {
+    const spec = await loadAsrModels(project.job.opts, (f, t) => { if (live === s) $('live-state').textContent = t + '（錄音已開始）'; });
+    project.model = spec.label; project.tier = spec.tier;
+    s.ready = true;
+  } catch (err){ s.error = err; console.error(err); }
+  if (live === s){ s.setState(); s.work(); if (finishOnly) s.stop(); }
+}
+// 把中斷前還沒辨識的錄音重新排進佇列
+async function requeueRange(s, from, to){
+  for (let t = from; t < to - 0.3; ){
+    const t1 = Math.min(to, t + 120);
+    const audio = await s.pcm.read(t, t1);
+    const chunker = new Chunker(t); chunker.push(audio);
+    for (const c of chunker.take(true)){ const end = c.t0 + c.audio.length / SR; if (!chunkIsSilent(c.audio)) s.queue.push({ t0: c.t0, t1: end, speech: true }); }
+    t = t1;
+  }
+}
+$('live-stop').addEventListener('click', () => { if (live && confirm('確定要結束錄音嗎？')) live.stop(); });
+$('live-pause').addEventListener('click', () => live && live.pause());
+$('live-mark').addEventListener('click', () => live && live.mark());
+$('live-remic').addEventListener('click', () => live && live.resumeMic());
+document.addEventListener('visibilitychange', () => {
+  if (!live) return;
+  if (document.hidden) return;
+  // 回到頁面時檢查麥克風是否還在收音
+  const trk = live.stream && live.stream.getAudioTracks()[0];
+  if (live.recording && (!trk || trk.readyState === 'ended' || (live.ctx && live.ctx.state !== 'running'))) live.interrupted();
+  requestWake();
+});
+window.addEventListener('beforeunload', (e) => { if (live && live.recording){ live.pcm.flush(); e.preventDefault(); e.returnValue = ''; } });
+
+// 錄音匯出：MP3（需要下載編碼器）或 WAV
+async function exportAudio(kind){
+  const blocks = await loadPcmBlocks(P.id);
+  if (!blocks.length) return alert('找不到錄音資料。');
+  const name = (P.name || '錄音').replace(/[\\/:*?"<>|]/g, '_');
+  if (kind === 'wav') return download(wavFromBlocks(blocks), name + '.wav');
+  const st = $('dl-status');
+  try {
+    if (!window.lamejs) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = LAME_URL; s.onload = res; s.onerror = () => rej(new Error('無法下載 MP3 編碼器')); document.head.appendChild(s); });
+    const enc = new lamejs.Mp3Encoder(1, SR, 48);
+    const out = [];
+    for (let i = 0; i < blocks.length; i++){
+      const i16 = new Int16Array(await blocks[i].blob.arrayBuffer());
+      for (let k = 0; k < i16.length; k += 1152){ const b = enc.encodeBuffer(i16.subarray(k, k + 1152)); if (b.length) out.push(new Uint8Array(b)); }
+      if (i % 20 === 0){ st.textContent = `轉成 MP3 中 ${Math.round(i / blocks.length * 100)}%`; await sleep(0); }
+    }
+    const f = enc.flush(); if (f.length) out.push(new Uint8Array(f));
+    st.textContent = '';
+    download(new Blob(out, { type: 'audio/mpeg' }), name + '.mp3');
+  } catch (err){
+    st.textContent = '';
+    if (confirm((err.message || err) + '\n要改下載 WAV 檔嗎？')) download(wavFromBlocks(blocks), name + '.wav');
+  }
+}
+
+/* ---------- 說話者區分 ---------- */
+function normalize(v){ let n = 0; for (const x of v) n += x * x; n = Math.sqrt(n) || 1; return Float32Array.from(v, x => x / n); }
+function dot(a, b){ let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+function centroid(g){
+  const acc = new Float32Array(g[0].emb.length);
+  for (const s of g) for (let i = 0; i < acc.length; i++) acc[i] += s.emb[i];
+  return normalize(acc);
+}
+function assignSpeakers(segs, k){
+  const withEmb = segs.filter(s => s.emb);
+  if (!withEmb.length || k === 1){ segs.forEach(s => s.spk = 0); return 1; }
+  let sample = withEmb.filter(s => s.end - s.start >= 1.2);
+  if (sample.length < 2) sample = withEmb.slice();
+  sample = sample.sort((a, b) => (b.end - b.start) - (a.end - a.start)).slice(0, 300);
+  const n = sample.length;
+  const clusters = sample.map((s, i) => ({ items: [i], alive: true }));
+  const S = Array.from({ length: n }, () => new Float32Array(n));
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){ const v = dot(sample[i].emb, sample[j].emb); S[i][j] = v; S[j][i] = v; }
+  let alive = n;
+  const target = k || 1;
+  while (alive > target){
+    let bi = -1, bj = -1, best = -Infinity;
+    for (let i = 0; i < n; i++){ if (!clusters[i].alive) continue;
+      for (let j = i + 1; j < n; j++){ if (!clusters[j].alive) continue; if (S[i][j] > best){ best = S[i][j]; bi = i; bj = j; } } }
+    if (bi < 0) break;
+    if (!k && best < SPK_THRESHOLD) break;
+    const na = clusters[bi].items.length, nb = clusters[bj].items.length;
+    for (let x = 0; x < n; x++){ if (!clusters[x].alive || x === bi || x === bj) continue;
+      const v = (na * S[bi][x] + nb * S[bj][x]) / (na + nb); S[bi][x] = v; S[x][bi] = v; }
+    clusters[bi].items.push(...clusters[bj].items); clusters[bj].alive = false; alive--;
+  }
+  let groups = clusters.filter(c => c.alive).map(c => c.items.map(i => sample[i]));
+  if (!k && groups.length > 1){
+    const totalDur = sample.reduce((t, s) => t + s.end - s.start, 0);
+    const big = groups.filter(g => g.length >= 3 || g.reduce((t, s) => t + s.end - s.start, 0) / totalDur > 0.05);
+    if (big.length){
+      const cs = big.map(centroid);
+      for (const g of groups){ if (big.includes(g)) continue;
+        for (const s of g){ let bi = 0, bv = -2; cs.forEach((c, i) => { const v = dot(c, s.emb); if (v > bv){ bv = v; bi = i; } }); big[bi].push(s); } }
+      groups = big;
+    }
+  }
+  const cents = groups.map(centroid);
+  for (const s of segs){
+    if (!s.emb){ s.spk = null; continue; }
+    let bi = 0, bv = -2; cents.forEach((c, i) => { const v = dot(c, s.emb); if (v > bv){ bv = v; bi = i; } });
+    s.spk = bi;
+  }
+  for (let i = 1; i < segs.length - 1; i++){
+    const s = segs[i];
+    if (s.end - s.start < 1.2 && segs[i - 1].spk === segs[i + 1].spk && segs[i - 1].spk != null) s.spk = segs[i - 1].spk;
+  }
+  const map = new Map(); let next = 0;
+  for (const s of segs){ if (s.spk == null) continue; if (!map.has(s.spk)) map.set(s.spk, next++); s.spk = map.get(s.spk); }
+  segs.forEach(s => { if (s.spk == null) s.spk = 0; });
+  return Math.max(1, next);
+}
+
+/* ---------- 文字工具 ---------- */
+const CONTENT = /[\p{L}\p{N}]/u;
+const HALLUCINATION = /(字幕由|字幕提供|字幕志[愿願]者|[请請]不吝[点點][赞贊]|[订訂][阅閱][点點][赞贊]|[点點][赞贊][订訂][阅閱]|明[镜鏡]與?[点點]{2}|[点點]{2}[栏欄]目|Amara\.org|[优優][优優][独獨]播|感[谢謝][观觀]看|[谢謝]{2}大家[观觀]看)/i;
+function isRepetitive(t){
+  const s = t.replace(/\s/g, '');
+  if (s.length < 12) return false;
+  if (new Set(s).size / s.length < 0.15) return true;
+  return /(.{1,6})\1{4,}/.test(s);
+}
+function cleanSegments(segs){
+  const out = [];
+  for (const s of segs){
+    const text = s.text.replace(/\s+/g, ' ').trim();
+    if (!text || !CONTENT.test(text) || HALLUCINATION.test(text) || isRepetitive(text)) continue;
+    const prev = out[out.length - 1];
+    if (prev && prev.text === text && s.start - prev.end < 2){ prev.end = Math.max(prev.end, s.end); continue; }
+    out.push({ ...s, text });
+  }
+  for (let i = 0; i < out.length; i++){
+    const s = out[i], nx = out[i + 1];
+    if (s.end - s.start < 0.5) s.end = s.start + 0.5;
+    if (nx && s.end > nx.start) s.end = Math.max(s.start + 0.2, nx.start);
+  }
+  return out;
+}
+let opencc = null;
+async function loadOpenCC(){
+  if (opencc) return opencc;
+  await new Promise((res, rej) => { const s = document.createElement('script'); s.src = OPENCC_URL; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  return (opencc = OpenCC.Converter({ from: 'cn', to: 'twp' }));
+}
+async function toTraditionalSegs(segs){
+  try {
+    const cv = await loadOpenCC();
+    return segs.map(s => { const t = cv(s.text); return countContent(t) === countContent(s.text) ? { ...s, text: t } : { ...s, text: t, words: null, low: null }; });
+  } catch { return segs; }
+}
+async function toTradText(t){ try { return (await loadOpenCC())(t); } catch { return t; } }
+function countContent(s){ let n = 0; for (const ch of s) if (CONTENT.test(ch)) n++; return n; }
+function stripToContent(s){ let o = ''; for (const ch of s) if (CONTENT.test(ch)) o += ch; return o; }
+// 第 ci 個內容字元在字串中的位置（UTF-16 索引）
+function contentPositions(s){ const pos = []; let i = 0; for (const ch of s){ if (CONTENT.test(ch)) pos.push(i); i += ch.length; } pos.push(i); return pos; }
+function visLen(s){ let n = 0; for (const ch of s) n += /[\u0000-ɏ]/.test(ch) ? 0.5 : 1; return n; }
+// 第 ci 個內容字元的時間（有逐字時間就用，否則依比例）
+function charTime(s, ci, end){
+  const total = countContent(s.text) || 1;
+  if (s.words && s.words.length){
+    let acc = 0;
+    for (const [a, b, n] of s.words){
+      if (ci < acc + n){ const f = (ci - acc + (end ? 1 : 0)) / n; return a + (b - a) * f; }
+      acc += n;
+    }
+    return s.words[s.words.length - 1][1];
+  }
+  return s.start + (s.end - s.start) * (ci + (end ? 1 : 0)) / total;
+}
+function wordsValid(s){ return s.words && s.words.reduce((n, w) => n + w[2], 0) === countContent(s.text); }
+const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('zh-Hant', { granularity: 'word' }) : null;
+function splitText(text, maxChars){
+  const clauses = text.match(/[^，。！？；、,.!?;：:]+[，。！？；、,.!?;：:」』]*|[，。！？；、,.!?;：:]+/g) || [text];
+  const lines = []; let cur = '';
+  const flush = () => { if (cur.trim()) lines.push(cur.trim()); cur = ''; };
+  for (let c of clauses){
+    c = c.trim(); if (!c) continue;
+    if (visLen(cur + c) <= maxChars){ cur += (cur && /[A-Za-z0-9]$/.test(cur) && /^[A-Za-z0-9]/.test(c) ? ' ' : '') + c; if (/[。！？!?]$/.test(c)) flush(); continue; }
+    flush();
+    if (visLen(c) <= maxChars){ cur = c; continue; }
+    const parts = hardSplit(c, maxChars);
+    lines.push(...parts.slice(0, -1));
+    cur = parts[parts.length - 1];
+  }
+  flush();
+  return lines;
+}
+function hardSplit(text, maxChars){
+  const words = segmenter ? [...segmenter.segment(text)].map(s => s.segment) : [...text];
+  const n = Math.ceil(visLen(text) / maxChars), target = visLen(text) / n;
+  const out = []; let cur = '';
+  for (const w of words){
+    const next = cur + w;
+    if (cur.trim() && (visLen(next) > maxChars || (visLen(next) > target * 1.1 && out.length < n - 1))){ out.push(cur.trim()); cur = w; }
+    else cur = next;
+    while (visLen(cur) > maxChars){
+      const chars = [...cur]; let k = 0, len = 0;
+      while (k < chars.length && len + visLen(chars[k]) <= maxChars){ len += visLen(chars[k]); k++; }
+      out.push(chars.slice(0, k).join('').trim()); cur = chars.slice(k).join('');
+    }
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+// 句子 → 字幕行（有逐字時間時用真實時間）
+function segmentsToLines(segs, maxChars, prefix){
+  const out = [];
+  for (const s of segs){
+    if (!s.text.trim()) continue;
+    const pieces = splitText(s.text, maxChars);
+    const useW = wordsValid(s);
+    const total = pieces.reduce((n, p) => n + Math.max(1, countContent(p)), 0);
+    let used = 0, ci = 0;
+    pieces.forEach((p, i) => {
+      const n = countContent(p), nn = Math.max(1, n);
+      let a, b;
+      if (useW && n){ a = charTime(s, ci); b = charTime(s, ci + n - 1, true); }
+      else { a = s.start + (s.end - s.start) * used / total; b = s.start + (s.end - s.start) * (used + nn) / total; }
+      out.push({ start: a, end: Math.max(b, a + 0.3), text: (i === 0 && prefix ? prefix(s) : '') + p });
+      used += nn; ci += n;
+    });
+  }
+  for (let i = 0; i < out.length; i++){ const l = out[i], nx = out[i + 1]; if (nx && l.end > nx.start - 0.02) l.end = Math.max(l.start + 0.2, nx.start - 0.02); }
+  return out;
+}
+
+/* ---------- 時間格式 ---------- */
+function pad(n, w = 2){ return String(n).padStart(w, '0'); }
+function fmtTime(sec, sep = ','){
+  const ms = Math.round(Math.max(0, sec) * 1000);
+  const h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000), x = ms % 1000;
+  return `${pad(h)}:${pad(m)}:${pad(s)}${sep}${pad(x, 3)}`;
+}
+function fmtHMS(sec){ sec = Math.floor(Math.max(0, sec)); return `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec % 3600 / 60))}:${pad(sec % 60)}`; }
+function fmtClock(sec){ sec = Math.floor(Math.max(0, sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`; }
+function parseClock(t){ const p = t.split(':').map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; }
+function fmtDur(sec){
+  sec = Math.round(sec || 0);
+  if (sec < 60) return sec + ' 秒';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return m + ' 分' + (s ? ' ' + s + ' 秒' : '');
+  return Math.floor(m / 60) + ' 小時 ' + (m % 60) + ' 分';
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* =====================================================================
+   AI 批次處理：加標點、翻譯
+   ===================================================================== */
+const SYS = '你是專業的逐字稿整理助理。一律使用台灣繁體中文回答，內容必須忠於原文，不可以捏造。';
+function parseNumbered(txt){
+  const map = new Map();
+  for (const line of txt.split('\n')){ const m = line.trim().match(/^(\d+)\s*[|｜:：.、]\s*(.*)$/); if (m) map.set(+m[1], m[2].trim()); }
+  return map;
+}
+// 加標點：只接受「文字完全沒變、只多了標點」的結果
+async function punctuateSegs(segs, onProgress, stopped, onApply){
+  const B = 10, t0 = performance.now();
+  for (let i = 0; i < segs.length; i += B){
+    if (stopped()) return;
+    const batch = segs.slice(i, i + B);
+    let eta = '';
+    if (i > 0){ const per = (performance.now() - t0) / i; eta = '，約剩 ' + fmtDur((segs.length - i) * per / 1000); }
+    onProgress(i / segs.length, `加上標點 ${i + 1}/${segs.length}${eta}`);
+    const out = await llm([{ role: 'system', content: SYS }, { role: 'user', content:
+      '請為下列每一行加上適當的中文標點符號（，。？！、：「」）。規則：不可以增加、刪除或修改任何字，只能加標點；保留行首的編號；每行一句，格式為「編號|句子」。\n\n' +
+      batch.map((s, j) => `${j + 1}|${s.text}`).join('\n') }], 60 + batch.reduce((n, s) => n + s.text.length * 2, 0));
+    const map = parseNumbered(await toTradText(out));
+    batch.forEach((s, j) => {
+      let t = map.get(j + 1); if (!t) return;
+      t = t.replace(/\s+/g, '').replace(/,/g, '，').replace(/\?/g, '？').replace(/!/g, '！');
+      if (stripToContent(t) !== stripToContent(s.text)) return;   // 模型改了字 → 不採用
+      s.text = t;
+      onApply && onApply(i + j);
+    });
+  }
+  onProgress(1, '完成');
+}
+async function translateSegs(segs, target, onProgress, stopped, onApply){
+  const B = 8, t0 = performance.now();
+  const sys = `You are a professional subtitle translator. Translate faithfully and naturally into ${target}. Output only the translations.`;
+  for (let i = 0; i < segs.length; i += B){
+    if (stopped()) return;
+    const batch = segs.slice(i, i + B);
+    let eta = '';
+    if (i > 0){ const per = (performance.now() - t0) / i; eta = '，約剩 ' + fmtDur((segs.length - i) * per / 1000); }
+    onProgress(i / segs.length, `翻譯中 ${i + 1}/${segs.length}${eta}`);
+    const out = await llm([{ role: 'system', content: sys }, { role: 'user', content:
+      `Translate each line into ${target}. Keep the line numbers. Format: "number|translation". One line per input line, no explanations.\n\n` +
+      batch.map((s, j) => `${j + 1}|${s.text}`).join('\n') }], 80 + batch.reduce((n, s) => n + s.text.length * 3, 0));
+    const txt = target === '繁體中文' ? await toTradText(out) : out;
+    const map = parseNumbered(txt);
+    for (let j = 0; j < batch.length; j++){
+      let t = map.get(j + 1);
+      if (!t){ // 單句重試
+        if (stopped()) return;
+        const one = await llm([{ role: 'system', content: sys }, { role: 'user', content: `Translate into ${target}. Output only the translation.\n\n${batch[j].text}` }], 120);
+        t = (target === '繁體中文' ? await toTradText(one) : one).trim().split('\n')[0];
+      }
+      batch[j].tr = t;
+      onApply && onApply(i + j);
+    }
+  }
+  onProgress(1, '完成');
+}
+
+/* =====================================================================
+   編輯器
+   ===================================================================== */
+let P = null;
+let mediaURL = null, trackURL = null, activeIdx = -1, saveTimer = null, trackTimer = null, markTimer = null;
+let proofMode = false, proofStop = null;
+const video = $('video');
+const isDesktop = () => window.matchMedia('(min-width: 961px)').matches;
+const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
+
+async function openProject(id, mediaOverride){
+  const p = await DB.get(id);
+  if (!p) return renderHistory();
+  if (p.status === 'processing') return resumeFileJob(p);
+  if (p.status === 'recording') return resumeLiveJob(p);
+  let media = mediaOverride || null;
+  if (!media && p.source === 'live'){ try { const b = await loadPcmBlocks(id); if (b.length) media = wavFromBlocks(b); } catch {} }
+  if (!media && p.hasMedia){ try { media = await DB.getMedia(id); } catch {} }
+  openEditor(p, media);
+}
+const resumeInput = document.createElement('input'); resumeInput.type = 'file'; resumeInput.accept = 'video/*,audio/*';
+async function resumeFileJob(p){
+  const pct = p.duration ? Math.round((p.job.doneUntil || 0) / p.duration * 100) : 0;
+  const act = await askResume('接續未完成的轉錄', `「${p.name}」上次處理到 ${fmtHMS(p.job.doneUntil || 0)}（約 ${pct}%）。請重新選擇同一個檔案（${p.job.fileName}），會從中斷的地方繼續。`,
+    [['選擇檔案並接續', 'go', 'primary'], ['用目前的內容完成', 'finish'], ['取消', null, 'ghost']]);
+  if (act === 'finish'){
+    show('progress'); $('p-name').textContent = p.name; $('p-error').hidden = true; setProgress(90, '整理中…');
+    await finalizeProject(p, (f, t) => setProgress(90 + 10 * f, t), setStep);
+    return openProject(p.id);
+  }
+  if (act !== 'go') return;
+  resumeInput.onchange = () => {
+    const f = resumeInput.files[0]; resumeInput.value = ''; if (!f) return;
+    if (f.name !== p.job.fileName || f.size !== p.job.fileSize){
+      if (!confirm(`這個檔案（${f.name}）和原本的（${p.job.fileName}）好像不一樣，確定要用它接續嗎？`)) return;
+    }
+    runQueue([f], p);
+  };
+  resumeInput.click();
+}
+async function resumeLiveJob(p){
+  const act = await askResume('錄音沒有正常結束', `「${p.name}」已保存 ${fmtHMS(p.duration || 0)} 的錄音。要繼續錄音，還是直接完成並轉寫剩下的部分？`,
+    [['繼續錄音', 'rec', 'primary'], ['完成並轉寫', 'finish'], ['取消', null, 'ghost']]);
+  if (!act) return;
+  startLive(p, act === 'finish');
+}
+function openEditor(project, media){
+  P = project; P.qa = P.qa || [];
+  $('ed-title').value = P.name;
+  $('save-state').textContent = '';
+  $('q').value = ''; $('rep').value = ''; $('rep-row').hidden = true;
+  setMedia(media);
+  renderTranscript();
+  renderSummary(); renderQA(); renderSpeakers();
+  setTab(isDesktop() ? 'summary' : 'transcript');
+  P.marks = P.marks || [];
+  updateProof(); updateLowBtn();
+  show('editor');
+}
+function setMedia(media){
+  if (mediaURL){ URL.revokeObjectURL(mediaURL); mediaURL = null; }
+  video.querySelectorAll('track').forEach(t => t.remove());
+  if (media){
+    mediaURL = URL.createObjectURL(media);
+    video.src = mediaURL; video.hidden = false; $('media-missing').hidden = true;
+    video.classList.toggle('audio-only', /^audio\//.test(media.type || P.mediaType || ''));
+    updateTrack();
+  } else {
+    video.removeAttribute('src'); video.load(); video.hidden = true; $('media-missing').hidden = false;
+  }
+}
+$('media-missing').addEventListener('click', () => $('media-file').click());
+$('media-file').addEventListener('change', async () => {
+  const f = $('media-file').files[0]; if (!f) return;
+  P.mediaType = f.type;
+  setMedia(f);
+  try { await DB.putMedia(P.id, f); P.hasMedia = true; scheduleSave(); } catch {}
+  $('media-file').value = '';
+});
+$('ed-back').addEventListener('click', () => { video.pause(); P = null; if (HL) CSS.highlights.clear(); show('home'); renderHistory(); });
+$('ed-title').addEventListener('input', () => { P.name = $('ed-title').value.trim() || '未命名'; scheduleSave(); });
+
+function scheduleSave(){
+  if (!P) return;
+  $('save-state').textContent = '編輯中…';
+  clearTimeout(saveTimer);
+  const p = P;
+  saveTimer = setTimeout(async () => {
+    try { await DB.put(p); if (P === p) $('save-state').textContent = '已儲存'; }
+    catch { if (P === p) $('save-state').textContent = '無法儲存'; }
+  }, 700);
+}
+function scheduleTrack(){ clearTimeout(trackTimer); trackTimer = setTimeout(updateTrack, 800); }
+function scheduleMarks(){ clearTimeout(markTimer); markTimer = setTimeout(() => { paintLow(); updateLowBtn(); }, 300); }
+function updateTrack(){
+  if (!mediaURL || !P) return;
+  video.querySelectorAll('track').forEach(t => t.remove());
+  if (trackURL) URL.revokeObjectURL(trackURL);
+  trackURL = URL.createObjectURL(new Blob([toVTT(segmentsToLines(P.segments, 16))], { type: 'text/vtt' }));
+  const t = document.createElement('track');
+  t.kind = 'subtitles'; t.label = '字幕'; t.srclang = 'zh'; t.src = trackURL; t.default = true;
+  video.appendChild(t);
+  t.addEventListener('load', () => { t.track.mode = 'showing'; });
+}
+
+/* ---------- 分頁 ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+function setTab(tab){
+  if (tab === 'transcript' && isDesktop()) tab = 'summary';
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  for (const t of ['summary', 'qa', 'speakers', 'transcript']) $('panel-' + t).classList.toggle('off', tab !== t);
+}
+window.matchMedia('(min-width: 961px)').addEventListener('change', () => {
+  const on = document.querySelector('.tabs button.on'); if (on) setTab(on.dataset.tab);
+});
+
+/* ---------- AI 工具選單 ---------- */
+$('tools-btn').addEventListener('click', (e) => { e.stopPropagation(); $('act-cleartr').hidden = !P.trLang; $('tools-menu').hidden = !$('tools-menu').hidden; });
+document.addEventListener('click', () => { $('tools-menu').hidden = true; });
+$('tools-menu').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('tools-menu').hidden = true;
+  const act = b.dataset.act;
+  if (act === 'punct') toolPunct();
+  else if (act === 'dict') toolDict();
+  else if (act === 'dictedit') openDict();
+  else if (act === 'translate'){ $('tr-dlg').showModal(); }
+  else if (act === 'cleartr'){ if (!confirm('移除所有翻譯？')) return; P.segments.forEach(s => delete s.tr); delete P.trLang; renderTranscript(); scheduleSave(); }
+});
+$('tr-close').addEventListener('click', () => $('tr-dlg').close());
+$('tr-go').addEventListener('click', () => { $('tr-dlg').close(); toolTranslate($('tr-lang').value); });
+
+// 共用的 AI 工作列
+async function runTask(name, fn){
+  if (busy) return alert('已有 AI 工作進行中，請稍候。');
+  busy = true; taskCancelled = false;
+  const proj = P;
+  $('task').hidden = false; $('task-name').textContent = name; $('task-bar').style.width = '0%'; $('task-pct').textContent = '';
+  const progress = (f, text) => {
+    if (P !== proj) return;
+    $('task-bar').style.width = Math.round(f * 100) + '%'; $('task-pct').textContent = Math.round(f * 100) + '%';
+    if (text) $('task-name').textContent = text;
+  };
+  requestWake();
+  let err = null;
+  try { await fn(proj, progress, () => taskCancelled); }
+  catch (e){ err = e; }
+  busy = false; releaseWake();
+  $('task').hidden = true;
+  await DB.put(proj).catch(() => {});
+  if (err && !taskCancelled){
+    console.error(err);
+    const msg = String(err.message || err);
+    alert(name + '失敗：' + msg + (/memory|allocation|OrtRun|bad_alloc/i.test(msg) ? '\n記憶體不足，請在首頁「進階設定」把 AI 模型改成「輕量」。' : ''));
+  }
+  return !err && !taskCancelled;
+}
+$('task-cancel').addEventListener('click', () => { taskCancelled = true; engine.terminate(); });
+
+async function toolPunct(){
+  if (!P.segments.length) return;
+  const targets = P.segments.filter(s => !/[，。？！、]/.test(s.text));
+  if (!targets.length && !confirm('逐字稿看起來已經有標點了，要重新整理嗎？')) return;
+  const list = targets.length ? targets : P.segments;
+  await runTask('自動加標點', async (proj, progress, stopped) => {
+    await loadLLM((f, t) => progress(0.1 * f, t));
+    await punctuateSegs(list, (f, t) => progress(0.1 + 0.9 * f, t), stopped, () => { if (P === proj) scheduleRefresh(); });
+  });
+  if (P) { renderTranscript(); scheduleSave(); scheduleTrack(); }
+}
+function toolDict(){
+  const dict = getDict();
+  if (!dict.length){ if (confirm('詞庫是空的，要現在新增嗎？')) openDict(); return; }
+  let n = 0; P.segments.forEach(s => { if (applyDictSeg(s, dict)) n++; });
+  renderTranscript(); scheduleSave(); scheduleTrack();
+  alert(n ? `已修正 ${n} 句。` : '沒有找到需要修正的字。');
+}
+async function toolTranslate(target){
+  if (!P.segments.length) return;
+  P.trLang = target;
+  renderTranscript();
+  await runTask('翻譯字幕', async (proj, progress, stopped) => {
+    await loadLLM((f, t) => progress(0.1 * f, t));
+    await translateSegs(proj.segments.filter(s => !s.tr), target, (f, t) => progress(0.1 + 0.9 * f, t), stopped, () => { if (P === proj) scheduleRefresh(); });
+  });
+  if (P){ renderTranscript(); scheduleSave(); }
+}
+let refreshTimer = null;
+function scheduleRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { if (P && !segsBox.contains(document.activeElement)) renderTranscript(); }, 1500); }
+
+/* ---------- 逐字稿列表 ---------- */
+const PLAIN = (() => { const d = document.createElement('div'); try { d.contentEditable = 'plaintext-only'; } catch {} return d.contentEditable === 'plaintext-only'; })();
+const ICON = {
+  merge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M7 13l5-5 5 5M5 4h14"/></svg>',
+  split: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16M8 7h8M8 17h8"/></svg>',
+  del:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+};
+function spkColor(i){ return SPK_COLORS[(i || 0) % SPK_COLORS.length]; }
+// 每一句對應到的重點標記
+function markedRows(){
+  const set = new Set(), a = P.segments;
+  for (const m of P.marks || []){
+    let lo = 0, hi = a.length - 1, ans = 0;
+    while (lo <= hi){ const k = (lo + hi) >> 1; if (a[k].start <= m + 0.5){ ans = k; lo = k + 1; } else hi = k - 1; }
+    if (a.length) set.add(ans);
+  }
+  return set;
+}
+const ICON_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>';
+const segsBox = $('segs');
+function renderTranscript(){
+  segsBox.innerHTML = '';
+  const hasSpk = P.speakers.length > 0, hasTr = !!P.trLang, stars = markedRows();
+  const frag = document.createDocumentFragment();
+  const mode = PLAIN ? 'plaintext-only' : 'true';
+  P.segments.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'seg' + (s.ok ? ' ok' : '') + (stars.has(i) ? ' star' : ''); row.dataset.i = i;
+    row.innerHTML = `<div class="seg-meta"><button class="ts" type="button">${fmtHMS(s.start)}</button>${hasSpk ? `<button class="spk" type="button" style="--c:${spkColor(s.spk)}">${esc(P.speakers[s.spk] || '講者')}</button>` : ''}</div>
+      <div class="txt" spellcheck="false"></div>
+      <div class="seg-acts">
+        <button class="icon-btn a-star${stars.has(i) ? ' on' : ''}" title="標記重點" type="button">${ICON_STAR}</button>
+        <button class="icon-btn a-merge" title="與上一句合併" type="button">${ICON.merge}</button>
+        <button class="icon-btn a-split" title="在游標處分段" type="button">${ICON.split}</button>
+        <button class="icon-btn a-del" title="刪除這句" type="button">${ICON.del}</button>
+      </div>${hasTr ? '<div class="tr" spellcheck="false"></div>' : ''}`;
+    const txt = row.querySelector('.txt');
+    txt.textContent = s.text; txt.contentEditable = mode;
+    if (hasTr){ const tr = row.querySelector('.tr'); tr.textContent = s.tr || ''; tr.contentEditable = mode; tr.dataset.placeholder = '（翻譯）'; }
+    frag.appendChild(row);
+  });
+  if (!P.segments.length) frag.appendChild(Object.assign(document.createElement('div'), { className: 'empty', textContent: '沒有偵測到語音' }));
+  segsBox.appendChild(frag);
+  activeIdx = -1; karaKey = '';
+  applySearch(false);
+  paintLow(); updateLowBtn(); updateProof();
+}
+const rowOf = (i) => segsBox.querySelector(`.seg[data-i="${i}"]`);
+segsBox.addEventListener('click', (e) => {
+  const row = e.target.closest('.seg'); if (!row) return;
+  const i = +row.dataset.i;
+  if (e.target.closest('.ts')){ proofMode ? playSeg(i) : seek(P.segments[i].start, true); return; }
+  if (e.target.closest('.spk')) return openSpkPop(i, e.target.closest('.spk'));
+  if (e.target.closest('.a-star')) return toggleStar(i);
+  if (e.target.closest('.a-merge')) return mergeUp(i);
+  if (e.target.closest('.a-split')) return splitAt(i, caretOffset(row.querySelector('.txt')));
+  if (e.target.closest('.a-del')) return deleteSeg(i);
+});
+segsBox.addEventListener('mousedown', (e) => { if (e.target.closest('.seg-acts')) e.preventDefault(); });
+// 講者選單（共用一個，長逐字稿也不會卡）
+const spkPop = $('spk-pop');
+function openSpkPop(i, btn){
+  spkPop.innerHTML = P.speakers.map((n, k) => `<button type="button" data-k="${k}"><span class="dot" style="--c:${spkColor(k)}"></span>${esc(n)}</button>`).join('') +
+    '<button type="button" data-k="new">＋ 新增講者</button>';
+  spkPop.hidden = false;
+  const r = btn.getBoundingClientRect();
+  spkPop.style.left = Math.min(window.innerWidth - spkPop.offsetWidth - 8, r.left) + 'px';
+  spkPop.style.top = (r.bottom + spkPop.offsetHeight + 8 > window.innerHeight ? r.top - spkPop.offsetHeight - 4 : r.bottom + 4) + 'px';
+  spkPop.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    let k = b.dataset.k;
+    if (k === 'new'){ P.speakers.push('講者 ' + (P.speakers.length + 1)); k = P.speakers.length - 1; renderSpeakers(); }
+    P.segments[i].spk = +k; spkPop.hidden = true;
+    const chip = rowOf(i)?.querySelector('.spk');
+    if (chip){ chip.textContent = P.speakers[+k]; chip.style.setProperty('--c', spkColor(+k)); }
+    renderSpeakers(); scheduleSave();
+  };
+}
+document.addEventListener('click', (e) => { if (!spkPop.hidden && !e.target.closest('#spk-pop') && !e.target.closest('.spk')) spkPop.hidden = true; });
+window.addEventListener('scroll', () => { spkPop.hidden = true; }, { passive: true });
+function toggleStar(i){
+  const a = P.segments, s = a[i], end = i + 1 < a.length ? a[i + 1].start : s.end + 1;
+  const has = (P.marks || []).some(m => m + 0.5 >= s.start && m + 0.5 < end);
+  if (has) P.marks = P.marks.filter(m => !(m + 0.5 >= s.start && m + 0.5 < end));
+  else (P.marks ||= []).push(s.start);
+  const row = rowOf(i); row?.classList.toggle('star', !has); row?.querySelector('.a-star')?.classList.toggle('on', !has);
+  renderSummary(); scheduleSave();
+}
+segsBox.addEventListener('input', (e) => {
+  const el = e.target.closest('.txt, .tr'); if (!el) return;
+  const i = +el.closest('.seg').dataset.i, s = P.segments[i];
+  if (el.classList.contains('tr')){ s.tr = el.textContent.replace(/\n+/g, ' '); scheduleSave(); return; }
+  const before = countContent(s.text);
+  s.text = el.textContent.replace(/\n+/g, ' ');
+  if (countContent(s.text) !== before) s.words = null;
+  if (s.low){ s.low = null; scheduleMarks(); }   // 改過的句子視為已確認
+  scheduleSave(); scheduleTrack();
+  if ($('q').value) applySearch(false);
+});
+segsBox.addEventListener('paste', (e) => {
+  if (!e.target.closest('.txt, .tr') || PLAIN) return;
+  e.preventDefault();
+  document.execCommand('insertText', false, (e.clipboardData.getData('text/plain') || '').replace(/\s*\n\s*/g, ' '));
+});
+segsBox.addEventListener('focusin', (e) => {
+  const txt = e.target.closest('.txt'); if (!txt || !proofMode) return;
+  const i = +txt.closest('.seg').dataset.i;
+  if (proofPlaying !== i) playSeg(i);
+});
+segsBox.addEventListener('keydown', (e) => {
+  const txt = e.target.closest('.txt'); if (!txt) return;
+  const i = +txt.closest('.seg').dataset.i;
+  if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); splitAt(i, caretOffset(txt)); }
+  else if (e.key === 'Backspace' && !e.isComposing && i > 0 && window.getSelection().isCollapsed && caretOffset(txt) === 0){ e.preventDefault(); mergeUp(i); }
+  else if (proofMode && e.key === 'Tab' && !e.isComposing){
+    e.preventDefault();
+    if (!e.shiftKey){ P.segments[i].ok = true; rowOf(i)?.classList.add('ok'); updateProof(); scheduleSave(); if (i + 1 < P.segments.length) focusSeg(i + 1, 0); }
+    else if (i > 0) focusSeg(i - 1, 0);
+  }
+});
+function caretOffset(el){
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !el.contains(sel.anchorNode)) return Math.floor(el.textContent.length / 2);
+  const r = document.createRange(); r.selectNodeContents(el); r.setEnd(sel.anchorNode, sel.anchorOffset);
+  return r.toString().length;
+}
+function focusSeg(i, offset, len){
+  const row = rowOf(i); const txt = row && row.querySelector('.txt'); if (!txt) return;
+  txt.focus({ preventScroll: true });
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const node = txt.firstChild; if (!node) return;
+  const r = document.createRange(); r.setStart(node, Math.min(offset, node.length)); r.setEnd(node, Math.min(offset + (len || 0), node.length));
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+}
+function splitAt(i, off){
+  const s = P.segments[i]; const t = s.text;
+  if (off <= 0 || off >= t.length) return;
+  const a = t.slice(0, off).trim(), b = t.slice(off).trim();
+  if (!a || !b) return;
+  const na = countContent(a), nb = countContent(b);
+  const mid = wordsValid(s) && na && nb ? charTime(s, na - 1, true) : s.start + (s.end - s.start) * Math.max(1, na) / (Math.max(1, na) + Math.max(1, nb));
+  let wa = null, wb = null;
+  if (wordsValid(s)){ // 依字數切開逐字時間
+    wa = []; wb = []; let acc = 0;
+    for (const w of s.words){
+      if (acc + w[2] <= na) wa.push(w);
+      else if (acc >= na) wb.push(w);
+      else { const k = na - acc, f = k / w[2], m = w[0] + (w[1] - w[0]) * f; wa.push([w[0], m, k]); wb.push([m, w[1], w[2] - k]); }
+      acc += w[2];
+    }
+  }
+  const lowA = [], lowB = [];
+  (s.low || []).forEach(([x, y]) => { if (y <= na) lowA.push([x, y]); else if (x >= na) lowB.push([x - na, y - na]); else { lowA.push([x, na]); lowB.push([0, y - na]); } });
+  P.segments.splice(i + 1, 0, { ...s, id: uid(), start: mid, text: b, words: wb, low: lowB.length ? lowB : null, tr: undefined, ok: false });
+  Object.assign(s, { end: mid, text: a, words: wa, low: lowA.length ? lowA : null });
+  renderTranscript(); scheduleSave(); scheduleTrack();
+  focusSeg(i + 1, 0);
+}
+function mergeUp(i){
+  if (i <= 0) return;
+  const p = P.segments[i - 1], s = P.segments[i];
+  const off = p.text.length, np = countContent(p.text);
+  const joiner = /[A-Za-z0-9]$/.test(p.text) && /^[A-Za-z0-9]/.test(s.text) ? ' ' : '';
+  p.words = wordsValid(p) && wordsValid(s) ? [...p.words, ...s.words] : null;
+  p.low = [...(p.low || []), ...(s.low || []).map(([x, y]) => [x + np, y + np])]; if (!p.low.length) p.low = null;
+  p.text = p.text + joiner + s.text; p.end = Math.max(p.end, s.end);
+  if (p.tr != null || s.tr != null) p.tr = [p.tr, s.tr].filter(Boolean).join(' ');
+  p.ok = p.ok && s.ok;
+  P.segments.splice(i, 1);
+  renderTranscript(); scheduleSave(); scheduleTrack();
+  focusSeg(i - 1, off);
+}
+function deleteSeg(i){
+  if (!confirm('刪除這一句？')) return;
+  P.segments.splice(i, 1);
+  renderTranscript(); scheduleSave(); scheduleTrack();
+}
+
+/* ---------- 標記：待確認（低信心） ---------- */
+function lowRanges(){
+  const out = [];
+  segsBox.querySelectorAll('.seg').forEach(row => {
+    const i = +row.dataset.i, s = P.segments[i];
+    if (!s || !s.low) return;
+    const node = row.querySelector('.txt').firstChild; if (!node) return;
+    const pos = contentPositions(node.textContent);
+    for (const [a, b] of s.low){ if (b > pos.length - 1) continue; out.push({ i, node, from: pos[a], to: pos[b - 1] + (node.textContent.codePointAt(pos[b - 1]) > 0xffff ? 2 : 1) }); }
+  });
+  return out;
+}
+function paintLow(){
+  if (!HL || !P) return;
+  const ranges = lowRanges().map(r => { const g = new Range(); g.setStart(r.node, r.from); g.setEnd(r.node, r.to); return g; });
+  CSS.highlights.set('lowconf', new Highlight(...ranges));
+}
+function updateLowBtn(){
+  if (!P) return;
+  const n = P.segments.reduce((k, s) => k + (s.low ? s.low.length : 0), 0);
+  $('low-btn').textContent = `待確認 ${n}`;
+  $('low-btn').hidden = !n;
+}
+$('low-btn').addEventListener('click', () => {
+  const ranges = lowRanges(); if (!ranges.length) return;
+  const cur = segsBox.contains(document.activeElement) ? +document.activeElement.closest('.seg').dataset.i : activeIdx;
+  const next = ranges.find(r => r.i > cur) || ranges[0];
+  focusSeg(next.i, next.from, next.to - next.from);
+  if (proofMode) playSeg(next.i);
+});
+
+/* ---------- 校稿模式 ---------- */
+let proofPlaying = -1;
+$('proof-btn').addEventListener('click', () => {
+  proofMode = !proofMode;
+  $('proof-btn').classList.toggle('on', proofMode);
+  $('proof-row').hidden = !proofMode;
+  if (!proofMode){ proofStop = null; proofPlaying = -1; }
+  updateProof();
+});
+function updateProof(){
+  if (!P) return;
+  const n = P.segments.filter(s => s.ok).length;
+  $('proof-count').textContent = `已校對 ${n} / ${P.segments.length} 句`;
+}
+function playSeg(i){
+  const s = P.segments[i]; if (!s || !mediaURL) return;
+  proofPlaying = i; proofStop = s.end + 0.15;
+  seek(s.start - 0.1, true);
+}
+
+/* ---------- 播放同步與逐字高亮 ---------- */
+function seek(t, play){
+  if (!mediaURL) return;
+  video.currentTime = Math.max(0, t + 0.01);
+  if (play) video.play().catch(() => {});
+}
+function findSeg(t){
+  const a = P.segments; let lo = 0, hi = a.length - 1, ans = -1;
+  while (lo <= hi){ const m = (lo + hi) >> 1; if (a[m].start <= t){ ans = m; lo = m + 1; } else hi = m - 1; }
+  if (ans >= 0 && t > a[ans].end + 1.5) return -1;
+  return ans;
+}
+let karaKey = '';
+function syncActive(){
+  if (!P || $('view-editor').hidden) return;
+  const t = video.currentTime;
+  if (proofStop != null && t >= proofStop){ video.pause(); proofStop = null; }
+  const i = findSeg(t);
+  if (i !== activeIdx){
+    segsBox.querySelector('.seg.active')?.classList.remove('active');
+    activeIdx = i;
+    if (i >= 0){
+      const row = rowOf(i);
+      if (row){
+        row.classList.add('active');
+        const editing = segsBox.contains(document.activeElement);
+        if ($('follow').checked && !video.paused && !editing) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }
+  paintKaraoke(i, t);
+}
+// 逐字高亮：標出目前正在說的字
+function paintKaraoke(i, t){
+  if (!HL) return;
+  const s = i >= 0 ? P.segments[i] : null;
+  if (!s || t < s.start || t > s.end + 0.3){ if (karaKey){ CSS.highlights.delete('karaoke'); karaKey = ''; } return; }
+  if (!wordsValid(s)){   // 依語速估算目前說到第幾個字
+    const n = countContent(s.text); if (!n) return;
+    const ci = Math.min(n - 1, Math.max(0, Math.floor((t - s.start) / Math.max(0.1, s.end - s.start) * n)));
+    const key = i + ':e' + ci; if (key === karaKey) return; karaKey = key;
+    const node = rowOf(i)?.querySelector('.txt').firstChild; if (!node) return;
+    const pos = contentPositions(node.textContent); if (ci >= pos.length - 1) return;
+    const r = new Range(); r.setStart(node, pos[ci]); r.setEnd(node, pos[Math.min(ci + 1, pos.length - 1)] > pos[ci] ? Math.min(node.length, pos[ci] + (node.textContent.codePointAt(pos[ci]) > 0xffff ? 2 : 1)) : pos[ci] + 1);
+    CSS.highlights.set('karaoke', new Highlight(r));
+    return;
+  }
+  let acc = 0, wi = -1;
+  for (let k = 0; k < s.words.length; k++){ const w = s.words[k]; if (t >= w[0] && t < Math.max(w[1], w[0] + 0.05)){ wi = k; break; } if (t < w[0]){ break; } acc += w[2]; }
+  if (wi < 0){ if (karaKey){ CSS.highlights.delete('karaoke'); karaKey = ''; } return; }
+  const key = i + ':' + wi; if (key === karaKey) return; karaKey = key;
+  const node = rowOf(i)?.querySelector('.txt').firstChild; if (!node) return;
+  const pos = contentPositions(node.textContent), a = acc, b = acc + s.words[wi][2];
+  if (b > pos.length - 1) return;
+  const r = new Range(); r.setStart(node, pos[a]); r.setEnd(node, pos[b - 1] + 1);
+  CSS.highlights.set('karaoke', new Highlight(r));
+}
+let rafId = 0;
+const loop = () => { syncActive(); rafId = video.paused ? 0 : requestAnimationFrame(loop); };
+video.addEventListener('play', () => { if (!rafId) rafId = requestAnimationFrame(loop); });
+video.addEventListener('seeked', syncActive);
+video.addEventListener('pause', () => { if (HL){ CSS.highlights.delete('karaoke'); karaKey = ''; } });
+video.addEventListener('ratechange', () => { $('speed').value = String(video.playbackRate); });
+$('speed').addEventListener('change', () => { video.playbackRate = +$('speed').value; });
+document.addEventListener('keydown', (e) => {
+  if ($('view-editor').hidden || document.querySelector('dialog[open]')) return;
+  if (e.key === 'Escape'){ e.preventDefault(); if (!mediaURL) return; if (video.paused){ proofStop = null; video.play().catch(() => {}); } else video.pause(); }
+  else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+    e.preventDefault(); if (mediaURL) video.currentTime = Math.max(0, video.currentTime + (e.key === 'ArrowLeft' ? -3 : 3));
+  }
+  else if (e.altKey && e.code === 'KeyR'){
+    e.preventDefault();
+    const el = document.activeElement && document.activeElement.closest && document.activeElement.closest('.seg');
+    const i = el ? +el.dataset.i : activeIdx;
+    if (i >= 0) playSeg(i);
+  }
+});
+
+/* ---------- 搜尋與取代 ---------- */
+let matches = [], matchIdx = -1;
+function applySearch(jump){
+  const q = $('q').value.trim().toLowerCase();
+  matches = [];
+  if (HL){ CSS.highlights.delete('search'); CSS.highlights.delete('search-cur'); }
+  if (!q){ $('q-count').textContent = ''; matchIdx = -1; segsBox.querySelectorAll('.seg.match').forEach(r => r.classList.remove('match')); return; }
+  segsBox.querySelectorAll('.seg').forEach(row => {
+    const txt = row.querySelector('.txt'); txt.normalize();
+    const node = txt.firstChild; if (!node) return;
+    const t = node.textContent.toLowerCase();
+    let from = 0, k;
+    while ((k = t.indexOf(q, from)) >= 0){ matches.push({ i: +row.dataset.i, node, k, len: q.length }); from = k + q.length; }
+  });
+  if (matchIdx >= matches.length || matchIdx < 0) matchIdx = matches.length ? 0 : -1;
+  paintMatches(jump);
+}
+function paintMatches(jump){
+  $('q-count').textContent = matches.length ? `${matchIdx + 1}/${matches.length}` : '0';
+  const rows = new Set(matches.map(m => m.i));
+  segsBox.querySelectorAll('.seg').forEach(r => r.classList.toggle('match', !HL && rows.has(+r.dataset.i)));
+  if (HL){
+    const all = [], cur = [];
+    matches.forEach((m, j) => { const r = new Range(); r.setStart(m.node, m.k); r.setEnd(m.node, m.k + m.len); (j === matchIdx ? cur : all).push(r); });
+    CSS.highlights.set('search', new Highlight(...all));
+    CSS.highlights.set('search-cur', new Highlight(...cur));
+  }
+  if (jump && matchIdx >= 0) rowOf(matches[matchIdx].i)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+$('q').addEventListener('input', () => { matchIdx = 0; applySearch(true); });
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); stepMatch(e.shiftKey ? -1 : 1); } });
+function stepMatch(d){ if (!matches.length) return; matchIdx = (matchIdx + d + matches.length) % matches.length; paintMatches(true); }
+$('q-next').addEventListener('click', () => stepMatch(1));
+$('q-prev').addEventListener('click', () => stepMatch(-1));
+$('rep-toggle').addEventListener('click', () => { $('rep-row').hidden = !$('rep-row').hidden; if (!$('rep-row').hidden) $('rep').focus(); });
+function replaceAllIn(s, q, r){ const lower = s.toLowerCase(); let out = '', from = 0, k; while ((k = lower.indexOf(q, from)) >= 0){ out += s.slice(from, k) + r; from = k + q.length; } return out + s.slice(from); }
+function afterTextChange(s, oldText){ if (s.text === oldText) return; if (countContent(s.text) !== countContent(oldText)) s.words = null; s.low = null; }
+$('rep-all').addEventListener('click', () => {
+  const qRaw = $('q').value.trim(), q = qRaw.toLowerCase(); if (!q || !matches.length) return;
+  const n = matches.length, r = $('rep').value;
+  P.segments.forEach(s => { const old = s.text; s.text = replaceAllIn(s.text, q, r); afterTextChange(s, old); });
+  if ($('rep-dict').checked) addToDict(qRaw, r);
+  renderTranscript(); scheduleSave(); scheduleTrack();
+  $('q-count').textContent = `已取代 ${n} 處`;
+});
+$('rep-one').addEventListener('click', () => {
+  if (matchIdx < 0 || !matches.length) return;
+  const m = matches[matchIdx]; const s = P.segments[m.i], old = s.text;
+  s.text = s.text.slice(0, m.k) + $('rep').value + s.text.slice(m.k + m.len);
+  afterTextChange(s, old);
+  renderTranscript(); scheduleSave(); scheduleTrack();
+  applySearch(true);
+});
+
+/* ---------- 講者面板 ---------- */
+function renderSpeakers(){
+  const box = $('panel-speakers');
+  if (!P.speakers.length){
+    box.innerHTML = `<h2>講者</h2><p class="small">這份逐字稿沒有區分說話者。可在首頁「進階設定」開啟說話者區分後重新轉錄，或手動標示。</p>
+      <div class="actions"><button class="btn sm" id="spk-enable" type="button">手動標示講者</button></div>`;
+    $('spk-enable').onclick = () => { P.speakers = ['講者 1']; P.segments.forEach(s => s.spk = 0); renderTranscript(); renderSpeakers(); scheduleSave(); };
+    return;
+  }
+  const stats = P.speakers.map(() => ({ n: 0, t: 0 }));
+  P.segments.forEach(s => { if (stats[s.spk]){ stats[s.spk].n++; stats[s.spk].t += s.end - s.start; } });
+  const canRecluster = P.segments.some(s => s.emb);
+  box.innerHTML = `<h2>講者</h2>
+    <div>${P.speakers.map((n, i) => `
+      <div class="spk-row" data-i="${i}">
+        <span class="dot" style="--c:${spkColor(i)}"></span>
+        <input type="text" value="${esc(n)}" aria-label="講者名稱">
+        <span class="small" style="white-space:nowrap">${fmtDur(stats[i].t)}</span>
+        ${P.speakers.length > 1 ? `<select class="spk-merge" title="合併到其他講者" aria-label="合併"><option value="">合併到…</option>${P.speakers.map((m, j) => j === i ? '' : `<option value="${j}">${esc(m)}</option>`).join('')}</select>` : ''}
+      </div>`).join('')}</div>
+    <p class="small" style="margin-top:12px">可直接修改名稱。每一句的講者也能在逐字稿左側個別調整。</p>
+    ${canRecluster ? `<div class="home-row"><select id="spk-k" aria-label="講者人數">
+        <option value="auto">自動判斷人數</option>${[2,3,4,5,6].map(k => `<option value="${k}"${k === P.speakers.length ? ' selected' : ''}>${k} 人</option>`).join('')}
+      </select><button class="btn sm" id="spk-re" type="button">重新分群</button></div>` : ''}`;
+  box.querySelectorAll('.spk-row input').forEach(inp => inp.addEventListener('input', () => {
+    const i = +inp.closest('.spk-row').dataset.i;
+    P.speakers[i] = inp.value.trim() || ('講者 ' + (i + 1));
+    segsBox.querySelectorAll('.spk').forEach(sel => { if (sel.options[i]) sel.options[i].textContent = P.speakers[i]; });
+    scheduleSave();
+  }));
+  box.querySelectorAll('.spk-merge').forEach(sel => sel.addEventListener('change', () => {
+    if (sel.value === '') return;
+    const from = +sel.closest('.spk-row').dataset.i, to = +sel.value;
+    P.segments.forEach(s => { if (s.spk === from) s.spk = to; });
+    P.speakers.splice(from, 1);
+    P.segments.forEach(s => { if (s.spk > from) s.spk--; });
+    renderTranscript(); renderSpeakers(); scheduleSave();
+  }));
+  const re = $('spk-re');
+  if (re) re.onclick = () => {
+    const n = assignSpeakers(P.segments, $('spk-k').value === 'auto' ? null : +$('spk-k').value);
+    P.speakers = Array.from({ length: n }, (_, i) => P.speakers[i] || ('講者 ' + (i + 1)));
+    renderTranscript(); renderSpeakers(); scheduleSave();
+  };
+}
+
+/* =====================================================================
+   重點整理（含會議紀錄等範本）
+   ===================================================================== */
+function renderSummary(gen){
+  const box = $('panel-summary');
+  const s = P.summary;
+  const tplSel = `<select id="tpl-sel" aria-label="整理範本">${Object.entries(TEMPLATES).map(([k, t]) => `<option value="${k}"${(s && s.template === k) || (!s && k === store.get('tpl', 'general')) ? ' selected' : ''}>${t.label}</option>`).join('')}</select>`;
+  const marks = (P.marks || []).slice().sort((a, b) => a - b);
+  const markHtml = marks.length ? `<div class="sec"><h3>★ 重點標記（${marks.length}）</h3><div class="marks-list">${marks.map(m => { const k = findSeg(m + 0.5); const t = k >= 0 ? P.segments[k].text : ''; return `<button type="button" data-t="${m}"><span class="ts">${fmtHMS(m)}</span> ${esc(t.slice(0, 40))}</button>`; }).join('')}</div></div>` : '';
+  if (P._busy === 'summary'){
+    box.innerHTML = `<h2>重點整理</h2><p class="small">整理中，進度顯示在上方工作列。整理期間可以繼續編輯逐字稿。</p>${gen ? `<div class="gen-box">${esc(gen)}</div>` : ''}`;
+    return;
+  }
+  if (!s){
+    box.innerHTML = `${markHtml}<h2>重點整理</h2>
+      <p class="small">用本機 AI 模型自動整理重點。可選「通用摘要」或「會議紀錄、課堂筆記、訪談整理」範本。第一次使用需下載模型。</p>
+      <div class="home-row">${tplSel}<button class="btn primary sm" id="sum-go" type="button">開始整理</button></div>`;
+  } else {
+    box.innerHTML = `${markHtml}<h2>重點整理 <span class="small">· ${esc(TEMPLATES[s.template || 'general'].label)}</span></h2>
+      ${s.overview ? `<p class="sum-overview">${esc(s.overview)}</p>` : ''}
+      ${s.keywords && s.keywords.length ? `<div class="kw">${s.keywords.map(k => `<span>${esc(k)}</span>`).join('')}</div>` : ''}
+      ${(s.sections || []).map(sec => `<div class="sec"><h3>${esc(sec.title)}</h3>${sec.items.length ? `<ul>${sec.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="small">（無）</p>'}</div>`).join('')}
+      ${s.chapters && s.chapters.length ? `<h2 style="margin-top:16px">章節</h2>` : ''}
+      ${(s.chapters || []).map(c => `<div class="chap"><div class="chap-h"><button class="ts" data-t="${c.start}" type="button">${fmtHMS(c.start)}</button><b>${esc(c.title)}</b></div>
+        ${c.points.length ? `<ul>${c.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</div>`).join('')}
+      <p class="small" style="margin-top:12px">AI 產生的內容可能有誤，請以逐字稿為準。</p>
+      <div class="home-row">${tplSel}<button class="btn sm" id="sum-go" type="button">重新整理</button><button class="btn ghost sm" id="sum-copy" type="button">複製</button></div>`;
+    box.querySelectorAll('.ts').forEach(b => b.addEventListener('click', () => seek(+b.dataset.t, true)));
+    $('sum-copy').onclick = () => copyText(summaryText(s, true), $('sum-copy'));
+  }
+  box.querySelectorAll('.marks-list button').forEach(b => b.addEventListener('click', () => { const t = +b.dataset.t; seek(t, true); const k = findSeg(t + 0.5); if (k >= 0) rowOf(k)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }));
+  $('tpl-sel').onchange = () => store.set('tpl', $('tpl-sel').value);
+  $('sum-go').onclick = () => generateSummary($('tpl-sel').value);
+}
+function summaryText(s, withTime){
+  let t = '';
+  if (s.overview) t += '【摘要】\n' + s.overview + '\n\n';
+  if (s.keywords && s.keywords.length) t += '【關鍵字】' + s.keywords.join('、') + '\n\n';
+  for (const sec of s.sections || []) t += '【' + sec.title + '】\n' + sec.items.map(x => '• ' + x).join('\n') + '\n\n';
+  if (s.chapters && s.chapters.length){
+    t += '【章節重點】\n';
+    for (const c of s.chapters){ t += (withTime ? fmtHMS(c.start) + ' ' : '') + c.title + '\n' + c.points.map(p => '  • ' + p + '\n').join(''); }
+  }
+  return t.trim() + '\n';
+}
+function transcriptChunks(segs, spkNames, size){
+  const chunks = []; let cur = null;
+  for (const s of segs){
+    const line = `[${fmtClock(s.start)}] ` + (spkNames.length > 1 ? (spkNames[s.spk] || '') + '：' : '') + s.text;
+    if (!cur || (cur.len + line.length > size && cur.lines.length)){ cur = { start: s.start, end: s.end, lines: [], len: 0 }; chunks.push(cur); }
+    cur.lines.push(line); cur.len += line.length; cur.end = s.end;
+  }
+  return chunks;
+}
+function parseChunk(txt){
+  const lines = txt.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').split('\n').map(l => l.trim()).filter(Boolean);
+  let title = '', points = [];
+  for (const l of lines){
+    const m = l.match(/^(?:標題|标题|主題|主题)\s*[:：]\s*(.+)/);
+    if (m){ title = m[1].trim(); continue; }
+    if (/^(?:重點|重点|重點概念|重點觀點)[^:：]*[:：]?\s*$/.test(l)) continue;
+    const b = l.match(/^(?:[-•*·]|\d+[.、)])\s*(.+)/);
+    if (b) points.push(b[1].trim());
+    else if (!title) title = l.replace(/^(?:重點|重点)\s*[:：]\s*/, '');
+  }
+  title = title.replace(/[（(]?\s*\d+\s*字(?:以內|以内)?\s*[)）]?/, '').replace(/[。．.]$/, '').trim().slice(0, 40);
+  return { title: title || '（未命名段落）', points: points.slice(0, 5) };
+}
+function parseSections(txt){
+  const secs = []; let cur = null;
+  for (let l of txt.replace(/\*\*/g, '').split('\n')){
+    l = l.trim(); if (!l) continue;
+    const h = l.match(/^#{1,4}\s*(.+)$/) || l.match(/^【(.+)】$/);
+    if (h){ cur = { title: h[1].trim().replace(/[:：]$/, ''), items: [] }; secs.push(cur); continue; }
+    if (!cur){ cur = { title: '摘要', items: [] }; secs.push(cur); }
+    const b = l.match(/^(?:[-•*·]|\d+[.、)])\s*(.+)/);
+    const item = (b ? b[1] : l).trim();
+    if (item && !/^[（(]?…[）)]?$/.test(item) && item !== '…') cur.items.push(item);
+  }
+  return secs.filter(s => s.title);
+}
+function parseFinal(txt){
+  const t = txt.replace(/\*\*/g, '');
+  const m = t.match(/摘要\s*[:：]\s*([\s\S]*?)(?:\n\s*(?:關鍵字|关键字|關鍵詞|关键词)\s*[:：]|$)/);
+  const k = t.match(/(?:關鍵字|关键字|關鍵詞|关键词)\s*[:：]\s*(.+)/);
+  const overview = (m ? m[1] : t).replace(/\s*\n\s*/g, '').trim();
+  const keywords = k ? k[1].split(/[、,，;；\/]/).map(x => x.trim().replace(/[。.]$/, '')).filter(Boolean).slice(0, 8) : [];
+  return { overview, keywords };
+}
+async function generateSummary(template){
+  if (!P.segments.length) return alert('逐字稿是空的。');
+  const tpl = TEMPLATES[template] || TEMPLATES.general;
+  const proj = P; proj._busy = 'summary'; renderSummary();
+  let gen = '';
+  const ok = await runTask('重點整理', async (proj, progress, stopped) => {
+    await loadLLM((f, t) => progress(0.12 * f, t));
+    const totalChars = proj.segments.reduce((n, s) => n + s.text.length, 0);
+    const chunks = transcriptChunks(proj.segments, proj.speakers, Math.min(4000, Math.max(1400, Math.ceil(totalChars / 18))));
+    const chapters = [];
+    for (let i = 0; i < chunks.length; i++){
+      if (stopped()) return;
+      const c = chunks[i];
+      progress(0.12 + 0.75 * i / chunks.length, `整理第 ${i + 1}/${chunks.length} 段`);
+      gen = '';
+      const out = await llm([{ role: 'system', content: SYS }, { role: 'user', content:
+        `以下是一段逐字稿（${fmtClock(c.start)}–${fmtClock(c.end)}）：\n\n${c.lines.join('\n')}\n\n` +
+        `請依照下面格式輸出，不要加其他內容：\n標題：這段的主題（15 字以內）\n${tpl.map}：\n- 第一點（30 字以內）\n- 第二點\n- 最多 4 點` }], 240,
+        (tok) => { gen += tok; if (P === proj) renderSummary(gen); });
+      chapters.push({ start: c.start, end: c.end, ...parseChunk(await toTradText(out)) });
+    }
+    if (stopped()) return;
+    progress(0.9, '撰寫整體摘要');
+    const list = chapters.map(c => `【${fmtClock(c.start)} ${c.title}】\n` + c.points.map(p => '- ' + p).join('\n')).join('\n\n');
+    gen = '';
+    const fin = await llm([{ role: 'system', content: SYS }, { role: 'user', content:
+      `以下是一份逐字稿各段落的主題與重點：\n\n${list}\n\n請依照下面格式輸出，不要加其他內容：\n摘要：用 3 到 5 句話總結整體內容\n關鍵字：5 個關鍵字，用頓號分隔` }], 320,
+      (tok) => { gen += tok; if (P === proj) renderSummary(gen); });
+    const { overview, keywords } = parseFinal(await toTradText(fin));
+    let sections = [];
+    if (tpl.reduce){
+      if (stopped()) return;
+      progress(0.95, `整理成「${tpl.label}」`);
+      gen = '';
+      const out = await llm([{ role: 'system', content: SYS }, { role: 'user', content:
+        `以下是一份逐字稿各段落的主題與重點：\n\n${list}\n\n請整理成「${tpl.label}」，依照下面的標題格式輸出（每個標題下用「- 」條列；沒有內容就寫「- 無」），不要加其他內容：\n\n${tpl.reduce}` }], 600,
+        (tok) => { gen += tok; if (P === proj) renderSummary(gen); });
+      sections = parseSections(await toTradText(out)).map(s => ({ ...s, items: s.items.filter(x => x !== '無') }));
+    }
+    proj.summary = { template, overview, keywords, sections, chapters, created: Date.now() };
+  });
+  delete proj._busy;
+  if (P === proj) renderSummary();
+}
+
+/* =====================================================================
+   問逐字稿
+   ===================================================================== */
+function renderQA(streaming){
+  const box = $('panel-qa');
+  const items = P.qa || [];
+  const linkify = (t) => esc(t).replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, (m, c) => `<button class="ts" data-t="${parseClock(c)}" type="button">${c}</button>`);
+  box.innerHTML = `<h2>問逐字稿</h2>
+    ${items.length || streaming ? '' : `<p class="small">用自然語言提問，AI 會從逐字稿找出答案並標出時間點。</p>
+      <div class="qa-sugg">${['這段主要在討論什麼？', '最後做了哪些決定？', '有哪些待辦事項？'].map(q => `<button class="btn sm qa-s" type="button">${q}</button>`).join('')}</div>`}
+    <div class="qa-list">${items.map(x => `<div class="qa-q">${esc(x.q)}</div><div class="qa-a">${linkify(x.a)}</div>`).join('')}
+      ${streaming ? `<div class="qa-q">${esc(streaming.q)}</div><div class="qa-a">${linkify(streaming.a || '思考中…')}</div>` : ''}</div>
+    <form class="qa-form" id="qa-form"><input type="text" id="qa-in" placeholder="例如：他們對預算有什麼結論？" autocomplete="off"><button class="btn primary sm" type="submit">提問</button></form>
+    ${items.length ? '<div class="home-row"><button class="btn ghost sm" id="qa-clear" type="button">清除對話</button></div>' : ''}`;
+  box.querySelectorAll('.ts').forEach(b => b.addEventListener('click', () => seek(+b.dataset.t, true)));
+  box.querySelectorAll('.qa-s').forEach(b => b.addEventListener('click', () => ask(b.textContent)));
+  $('qa-form').onsubmit = (e) => { e.preventDefault(); const q = $('qa-in').value.trim(); if (q) ask(q); };
+  const clr = $('qa-clear'); if (clr) clr.onclick = () => { P.qa = []; renderQA(); scheduleSave(); };
+  box.scrollTop = box.scrollHeight;
+}
+// 找出和問題最相關的逐字稿片段（中文以雙字詞比對）
+function retrieve(segs, spk, q, budget){
+  const passages = transcriptChunks(segs, spk, 450);
+  const grams = (t) => { const s = stripToContent(t.toLowerCase()); const g = new Set(); for (let i = 0; i < s.length - 1; i++) g.add(s.slice(i, i + 2)); if (s.length === 1) g.add(s); return g; };
+  const pg = passages.map(p => grams(p.lines.join('')));
+  const df = new Map(); pg.forEach(g => g.forEach(x => df.set(x, (df.get(x) || 0) + 1)));
+  const qg = grams(q), N = passages.length;
+  const scored = passages.map((p, i) => { let sc = 0; qg.forEach(x => { if (pg[i].has(x)) sc += Math.log(1 + N / (df.get(x) || 1)); }); return { p, i, sc }; });
+  scored.sort((a, b) => b.sc - a.sc);
+  const picked = []; let used = 0;
+  for (const s of scored){ if (used + s.p.len > budget && picked.length) break; picked.push(s); used += s.p.len; }
+  if (!scored[0] || scored[0].sc === 0){ // 問題很籠統：平均取樣
+    picked.length = 0; used = 0;
+    const step = Math.max(1, Math.floor(N / 6));
+    for (let i = 0; i < N && used < budget; i += step){ picked.push({ p: passages[i], i }); used += passages[i].len; }
+  }
+  return picked.sort((a, b) => a.i - b.i).map(s => s.p.lines.join('\n')).join('\n…\n');
+}
+async function ask(q){
+  if (busy) return alert('已有 AI 工作進行中，請稍候。');
+  const proj = P;
+  const cur = { q, a: '' };
+  renderQA(cur);
+  const context = retrieve(proj.segments, proj.speakers, q, 2600);
+  const history = (proj.qa || []).slice(-2).flatMap(x => [{ role: 'user', content: x.q }, { role: 'assistant', content: x.a }]);
+  const ok = await runTask('回答問題', async (p, progress) => {
+    await loadLLM((f, t) => progress(0.3 * f, t));
+    progress(0.4, '思考中');
+    const out = await llm([
+      { role: 'system', content: SYS + '只能根據提供的逐字稿片段回答；如果片段中找不到答案，就回答「逐字稿中沒有提到」。在引用的內容後面用 [分:秒] 標註出處時間，例如 [12:05]。' },
+      ...history,
+      { role: 'user', content: `逐字稿片段（每行開頭是時間）：\n${context}\n\n問題：${q}` }
+    ], 400, (tok) => { cur.a += tok; if (P === proj) renderQA(cur); });
+    cur.a = (await toTradText(out)).trim();
+  });
+  if (ok){ proj.qa.push(cur); scheduleSave(); }
+  if (P === proj) renderQA();
+}
+
+/* =====================================================================
+   匯出
+   ===================================================================== */
+const dlg = $('export-dlg');
+$('export-btn').addEventListener('click', () => { $('o-spk').checked = !['srt', 'vtt'].includes(fmtSel()); syncExportOpts(); dlg.showModal(); });
+$('export-close').addEventListener('click', () => dlg.close());
+dlg.addEventListener('change', (e) => {
+  if (e.target.name === 'fmt') $('o-spk').checked = !['srt', 'vtt'].includes(fmtSel());
+  syncExportOpts();
+});
+function fmtSel(){ return dlg.querySelector('input[name=fmt]:checked').value; }
+function syncExportOpts(){
+  const f = fmtSel(), sub = f === 'srt' || f === 'vtt', hasTr = !!P.trLang;
+  $('o-time-l').hidden = sub; $('o-sum-l').hidden = sub || !P.summary; $('o-max-l').hidden = !sub;
+  $('o-spk-l').hidden = !P.speakers.length;
+  $('o-lang-l').hidden = !sub || !hasTr; $('o-tr-l').hidden = sub || !hasTr;
+  $('export-copy').hidden = f === 'docx';
+  $('audio-export').hidden = P.source !== 'live';
+}
+$('dl-mp3').addEventListener('click', () => exportAudio('mp3'));
+$('dl-wav').addEventListener('click', () => exportAudio('wav'));
+function exportText(f){
+  const withSpk = $('o-spk').checked && P.speakers.length > 0;
+  const name = (s) => P.speakers[s.spk] || '';
+  if (f === 'srt' || f === 'vtt'){
+    const max = Math.max(8, Math.min(40, +$('o-max').value || 16));
+    const mode = P.trLang ? $('o-lang').value : 'orig';
+    let lines;
+    if (mode === 'orig') lines = segmentsToLines(P.segments, max, withSpk ? (s) => name(s) + '：' : null);
+    else lines = P.segments.filter(s => s.text.trim()).map(s => {  // 有翻譯時：一句一個字幕
+      const orig = splitText(s.text, max).slice(0, 3).join('\n');
+      const pre = withSpk ? name(s) + '：' : '';
+      return { start: s.start, end: s.end, text: mode === 'tr' ? pre + (s.tr || '') : pre + orig + (s.tr ? '\n' + s.tr : '') };
+    });
+    return f === 'srt' ? toSRT(lines) : toVTT(lines);
+  }
+  const withTime = $('o-time').checked, withSum = $('o-sum').checked && P.summary, withTr = $('o-tr').checked && P.trLang;
+  let t = P.name + '\n' + new Date(P.created).toLocaleString('zh-TW') + ' · ' + fmtDur(P.duration) + '\n\n';
+  if (withSum) t += summaryText(P.summary, withTime) + '\n【逐字稿】\n';
+  const stars = markedRows(), starSegs = new Set([...stars].map(i => P.segments[i]));
+  for (const g of groupParagraphs(withSpk)){
+    const starred = g.some(s => starSegs.has(s));
+    const head = [starred ? '★' : '', withSpk ? name(g[0]) : '', withTime ? fmtHMS(g[0].start) : ''].filter(Boolean).join('  ');
+    t += (head ? head + '\n' : '') + joinTexts(g) + '\n' + (withTr ? g.map(s => s.tr).filter(Boolean).join(' ') + '\n' : '') + '\n';
+  }
+  return t.trim() + '\n';
+}
+function groupParagraphs(bySpk){
+  const out = []; let cur = null;
+  for (const s of P.segments){
+    if (!s.text.trim()) continue;
+    const brk = !cur || (bySpk ? s.spk !== cur[0].spk : s.start - cur[0].start > 60);
+    if (brk){ cur = [s]; out.push(cur); } else cur.push(s);
+  }
+  return out;
+}
+function joinTexts(g){
+  return g.map(s => s.text.trim()).reduce((a, b) => {
+    if (!a) return b;
+    const cjk = /[㐀-鿿]$/.test(a) && /^[㐀-鿿]/.test(b);
+    return a + (cjk ? '，' : /[，。！？、,.!?」]$/.test(a) ? '' : ' ') + b;
+  }, '');
+}
+function download(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+$('export-go').addEventListener('click', () => {
+  const f = fmtSel(); const base = (P.name || '逐字稿').replace(/[\\/:*?"<>|]/g, '_');
+  if (f === 'docx') return download(makeDocx(), base + '.docx');
+  const text = exportText(f);
+  download(new Blob(['﻿' + (f === 'srt' ? text.replace(/\r?\n/g, '\r\n') : text)], { type: 'text/plain;charset=utf-8' }), base + '.' + f);
+});
+$('export-copy').addEventListener('click', () => copyText(exportText(fmtSel()), $('export-copy')));
+async function copyText(t, btn){
+  try { await navigator.clipboard.writeText(t); }
+  catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  const old = btn.textContent; btn.textContent = '已複製'; setTimeout(() => btn.textContent = old, 1500);
+}
+function toSRT(lines){ return lines.map((l, i) => `${i + 1}\n${fmtTime(l.start)} --> ${fmtTime(l.end)}\n${l.text}\n`).join('\n'); }
+function toVTT(lines){ return 'WEBVTT\n\n' + lines.map(l => `${fmtTime(l.start, '.')} --> ${fmtTime(l.end, '.')}\n${l.text}\n`).join('\n'); }
+
+function makeDocx(){
+  const withSpk = $('o-spk').checked && P.speakers.length > 0, withTime = $('o-time').checked, withSum = $('o-sum').checked && P.summary, withTr = $('o-tr').checked && P.trLang;
+  const x = (s) => String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+  const run = (text, o = {}) => `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft JhengHei"/>${o.b ? '<w:b/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}<w:sz w:val="${(o.size || 11) * 2}"/><w:szCs w:val="${(o.size || 11) * 2}"/></w:rPr><w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
+  const para = (runs, after = 120) => `<w:p><w:pPr><w:spacing w:after="${after}" w:line="320" w:lineRule="auto"/></w:pPr>${runs}</w:p>`;
+  let body = para(run(P.name, { b: true, size: 18 }), 80);
+  body += para(run(new Date(P.created).toLocaleString('zh-TW') + ' · ' + fmtDur(P.duration), { color: '777777', size: 10 }), 280);
+  if (withSum){
+    const s = P.summary;
+    if (s.overview) body += para(run('摘要', { b: true, size: 14 }), 100) + para(run(s.overview), 160);
+    if (s.keywords && s.keywords.length) body += para(run('關鍵字：', { b: true }) + run(s.keywords.join('、')), 200);
+    for (const sec of s.sections || []){
+      body += para(run(sec.title, { b: true, size: 14 }), 100);
+      for (const it of sec.items) body += para(run('• ' + it), 40);
+      body += para('', 120);
+    }
+    if (s.chapters && s.chapters.length){
+      body += para(run('章節重點', { b: true, size: 14 }), 100);
+      for (const c of s.chapters){
+        body += para((withTime ? run(fmtHMS(c.start) + '  ', { color: '2F5BFF' }) : '') + run(c.title, { b: true }), 60);
+        for (const p of c.points) body += para(run('• ' + p), 40);
+      }
+    }
+    body += para('', 200) + para(run('逐字稿', { b: true, size: 14 }), 120);
+  }
+  const stars = markedRows(), starSegs = new Set([...stars].map(i => P.segments[i]));
+  for (const g of groupParagraphs(withSpk)){
+    const starred = g.some(s => starSegs.has(s));
+    const head = (starred ? run('★ ', { color: 'F59F00', b: true }) : '') + (withSpk ? run(P.speakers[g[0].spk] || '', { b: true, color: '333333' }) : '') + (withTime ? run((withSpk ? '  ' : '') + fmtHMS(g[0].start), { color: '888888', size: 10 }) : '');
+    if (head) body += para(head, 40);
+    body += para(run(joinTexts(g)), withTr ? 40 : 200);
+    if (withTr){ const tr = g.map(s => s.tr).filter(Boolean).join(' '); body += para(tr ? run(tr, { color: '666666', size: 10 }) : '', 200); }
+  }
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const types = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const enc = new TextEncoder();
+  return new Blob([zipStore([
+    { name: '[Content_Types].xml', data: enc.encode(types) },
+    { name: '_rels/.rels', data: enc.encode(rels) },
+    { name: 'word/document.xml', data: enc.encode(doc) },
+  ])], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(d){ let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = CRC_T[(c ^ d[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files){
+  const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+  for (const f of files){
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, 0, true); h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, size, true); h.setUint32(22, size, true);
+    h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, 0, true); c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, size, true); c.setUint32(24, size, true);
+    c.setUint16(28, name.length, true); c.setUint32(42, offset, true);
+    central.push(new Uint8Array(c.buffer), name);
+    offset += 30 + name.length + size;
+  }
+  const cSize = central.reduce((n, p) => n + p.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, cSize, true); e.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)]);
+}
+
+/* ---------- 螢幕常亮 ---------- */
+async function requestWake(){ try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {} }
+function releaseWake(){ if (busy || live) return; try { wakeLock?.release(); } catch {} wakeLock = null; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && (busy || live || !$('view-progress').hidden)) requestWake(); });
+</script>
+</body>
+</script>
+</body>
+</html>
